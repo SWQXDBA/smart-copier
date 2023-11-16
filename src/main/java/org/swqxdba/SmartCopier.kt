@@ -6,6 +6,8 @@ import javassist.ClassPool
 import javassist.CtClass
 import javassist.CtField
 import javassist.CtMethod
+import java.beans.Beans
+import java.beans.Introspector
 import java.lang.RuntimeException
 import java.lang.reflect.Method
 
@@ -110,7 +112,8 @@ object SmartCopier {
         //获取bean属性
         for (targetProperty in targetProperties) {
             val writeMethod = targetProperty.getWriteMethod() ?: continue
-            val sourceProperty = BeanUtil.getPropertyDescriptor(sourceClass, targetProperty.name) ?: continue
+
+            val sourceProperty = SmartUtil.getPropertyDescriptor(sourceClass, targetProperty.name) ?: continue
             val readMethod = sourceProperty.getReadMethod() ?: continue
             mapper[readMethod] = writeMethod
         }

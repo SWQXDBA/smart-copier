@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.swqxdba</groupId>
-    <artifactId>javaassist-study</artifactId>
+    <artifactId>smart-copier</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -27,6 +27,7 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>5.8.23</version>
+<!--            <scope>test</scope>-->
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>

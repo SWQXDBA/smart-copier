@@ -8,7 +8,9 @@ data class Person(var name: String, var age: Int, var sex: String)
 data class Animal(var name: String, var age: Int)
 
 fun main(args: Array<String>) {
-    val copier = SmartCopier.getCopier(Person::class.java, Animal::class.java, CopyConfig(
+    val testCount = 10000000
+    val byHandCopier = BeanCopierTestImpl()
+    val config = CopyConfig(
         defaultValueProvider = object : PropertyValueProvider {
             override fun provide(
                 sourceGetter: Method,
@@ -57,31 +59,33 @@ fun main(args: Array<String>) {
         replaceWithNull = false
 
     )
+    val copier = SmartCopier.getCopier(
+        Person::class.java, Animal::class.java, null
     )
     val person = Person("name", 15, "男")
     val animal = Animal("name2", 14)
-    run {
+    repeat(2) {
 
         val start = System.currentTimeMillis()
-        repeat(1000000) {
+        repeat(testCount) {
             copier.copy(person, animal)
         }
-        println("use time ${System.currentTimeMillis() - start}")
+        println("smart copier use time ${System.currentTimeMillis() - start}")
+    }
+    repeat(2) {
+        val start = System.currentTimeMillis()
+        repeat(testCount) {
+            byHandCopier.copy(person, animal)
+        }
+        println("byHand copier use time ${System.currentTimeMillis() - start}")
     }
 
-    run {
+    repeat(2) {
         val start = System.currentTimeMillis()
-        repeat(1000000) {
+        repeat(testCount) {
             BeanUtil.copyProperties(person, animal)
         }
-        println("use time ${System.currentTimeMillis() - start}")
-    }
-    run {
-        val start = System.currentTimeMillis()
-        repeat(1000000) {
-            BeanUtil.copyProperties(person, animal)
-        }
-        println("use time ${System.currentTimeMillis() - start}")
+        println("BeanUtil time ${System.currentTimeMillis() - start}")
     }
 }
 
