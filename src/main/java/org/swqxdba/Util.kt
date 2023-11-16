@@ -1,9 +1,5 @@
 package org.swqxdba
 
-
-
-import ch.qos.logback.core.joran.util.beans.BeanUtil
-import com.sun.org.apache.xerces.internal.impl.xpath.regex.CaseInsensitiveMap
 import java.beans.Introspector
 import java.beans.PropertyDescriptor
 
@@ -13,10 +9,8 @@ object SmartUtil{
 
         val propertyDescriptors = beanInfo.propertyDescriptors
         val map: MutableMap<String, PropertyDescriptor> = mutableMapOf()
-        val var5 = propertyDescriptors.size
-        for (var6 in 0 until var5) {
-            val propertyDescriptor = propertyDescriptors[var6]
-            map[propertyDescriptor.name] = propertyDescriptor
+        for (element in propertyDescriptors) {
+            map[element.name] = element
         }
         return map
     }
