@@ -173,3 +173,14 @@ currentMapper的value是目标属性的setter方法。
 要求返回的新的map也应该遵循这个规则。并且保证getter返回值和setter参数的类型是兼容的。(比如不能把Integer赋值给String)
 
 > PropertyMapperRuleCustomizer只会在Copier实例生成时被调用，后续拷贝中属性的对应关系是确定的，不会有额外开销。  
+
+
+
+# debug模式
+如果想查看生成的copy方法的方法源码，或者是生成的class字节码:
+```
+SmartCopier.setDebugGeneratedClassFileDir("your/path/");
+SmartCopier.setDebug(true);
+
+```
+此时生成的字节码会被输出成class文件，到指定的目录中。

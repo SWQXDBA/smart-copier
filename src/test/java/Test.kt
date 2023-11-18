@@ -1,16 +1,34 @@
 import cn.hutool.core.bean.BeanUtil
 import org.swqxdba.*
+import org.swqxdba.SmartCopier.Companion.debugGeneratedClassFileDir
+import org.swqxdba.SmartCopier.Companion.setDebugMode
 import java.lang.reflect.Method
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.HashMap
 
 
-data class Person(var name: String, var age: Int, var sex: String)
-data class Animal(var name: String, var age: Int)
+data class Person(
+    var name: String,
+    var age: Int,
+    var sex: String,
+    var array: IntArray = IntArray(1),
+    var array2: Array<IntArray> = emptyArray(),
+    var typeArr: Array<String> = emptyArray(),
+    var genericType:List<List<Person>> = emptyList()
+)
+
+data class Animal(
+    var name: String,
+    var age: Int,
+    var array: IntArray = IntArray(1),
+    var array2: Array<IntArray> = emptyArray(),
+    var typeArr: Array<String> = emptyArray(),
+    var genericType:List<List<Person>> = emptyList()
+)
 
 fun main(args: Array<String>) {
 
+    setDebugMode(true)
+    debugGeneratedClassFileDir = "your/path/"
 
     val testCount = 10000000
 
