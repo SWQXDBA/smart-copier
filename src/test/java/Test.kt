@@ -2,14 +2,18 @@ import cn.hutool.core.bean.BeanUtil
 import org.swqxdba.*
 import java.lang.reflect.Method
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.HashMap
 
 
 data class Person(var name: String, var age: Int, var sex: String)
 data class Animal(var name: String, var age: Int)
 
 fun main(args: Array<String>) {
+
+
     val testCount = 10000000
-    val byHandCopier = BeanCopierTestImpl()
+
     val config = CopyConfig(
         defaultValueProvider = object : PropertyValueProvider {
             override fun provide(
@@ -55,8 +59,7 @@ fun main(args: Array<String>) {
                 return newMap
             }
 
-        },
-        replaceWithNull = false
+        }
 
     )
     val copier = SmartCopier.getCopier(
@@ -72,13 +75,7 @@ fun main(args: Array<String>) {
         }
         println("smart copier use time ${System.currentTimeMillis() - start}")
     }
-    repeat(2) {
-        val start = System.currentTimeMillis()
-        repeat(testCount) {
-            byHandCopier.copy(person, animal)
-        }
-        println("byHand copier use time ${System.currentTimeMillis() - start}")
-    }
+
 
     repeat(2) {
         val start = System.currentTimeMillis()
@@ -90,3 +87,9 @@ fun main(args: Array<String>) {
 }
 
 
+fun main() {
+    val name: String? = null
+    if (name != null) {
+        println(name.toString());
+    }
+}

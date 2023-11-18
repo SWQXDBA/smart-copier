@@ -1,9 +1,7 @@
 package org.swqxdba
 
-import com.sun.org.apache.xpath.internal.operations.Bool
-import java.lang.reflect.Field
 import java.lang.reflect.Method
-import java.lang.reflect.Type
+
 
 
 /**
@@ -70,15 +68,12 @@ interface PropertyMapperRuleCustomizer {
 }
 
 /**
- * valueInterceptor将会先被调用 然后defaultValueProvider再被调用
  * @param defaultValueProvider 默认值提供者
  * @param propertyValueConverter 属性值转换器
  * @param propertyMapperRuleCustomizer 用于客制化属性的对应关系
- * @param replaceWithNull 当结果为null值时 是否执行setter
  */
 class CopyConfig(
     val defaultValueProvider: PropertyValueProvider? = null,
     val propertyValueConverter: PropertyValueConverter? = null,
     val propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
-    val replaceWithNull:Boolean = true
 )
