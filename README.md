@@ -148,20 +148,20 @@ CopyConfig提供了三个参数(函数式接口)，当不为null时生效。
 默认值允许为null，如果给了一个非null的默认值，那么则当成原属性不为null处理。 
 
 >注意 PropertyValueProvider只在生成Copier实例的时候执行，不会在每次拷贝的时候被执行，
-> 执行结果会被作为成员变量存在Copier实例中，  
+> 执行结果会被作为成员变量存在Copier实例中。
 > 
 
 
 
 # PropertyValueConverter 
-用于值转换 可以在在读取src中的属性后进行一层转换再给target的属性赋值。  
+用于值转换 可以在读取src中的属性后进行一层转换再给target的属性赋值。  
 
 如果一个null值经过PropertyValueConverter转换后不再为null，那么则当成原属性不为null处理。  
 
 > 在生成Copier实例的时候，会通过shouldIntercept来判断拷贝过程中要不要对这个属性应用convert，  
 > 如果判断要对该属性应用convert，则每次拷贝时该属性都会被应用PropertyValueConverter。
 > 
-> 即shouldIntercept方法在只在生成Copier实例时调用,PropertyValueConverter每次拷贝时调用
+> 即shouldIntercept方法在只在生成Copier实例时调用,PropertyValueConverter在每次拷贝时调用
 > 
 
 
