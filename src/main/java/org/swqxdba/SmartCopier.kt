@@ -219,7 +219,7 @@ class SmartCopier {
             val targetProperties = BeanUtil.getPropertyDescriptors(targetClass)
 
 
-            val bodyStringBuilder = StringBuilder();
+            val totalBodyStringBuilder = StringBuilder();
             var mapper = mutableMapOf<Method, Method>()
 
             //目标属性的getter方法 用于生成merge方法时判断字段现有的值是否为null
@@ -256,6 +256,9 @@ class SmartCopier {
 
             //遍历属性 生成代码
             for ((readMethod, writeMethod) in mapper) {
+                //用一个临时的builder 因为可能会跳过这个属性，就不拼接到总的builder里
+                val bodyStringBuilder = StringBuilder()
+
                 //开启独立的代码块 避免变量名冲突
                 bodyStringBuilder.append("{")
                 //setter中的参数类型
@@ -286,13 +289,31 @@ class SmartCopier {
                     }
                 }
 
-
                 //定义临时变量 用来存储源属性值
-                bodyStringBuilder.append(
-                    """
+                //这里使用setter方法的类型 而不是srcGetter方法的类型是为了保证能赋值成功
+                val typesOption = config?.incompatibleTypesOption?:IncompatibleTypesOption.IGNORE
+
+                //类型是兼容的
+                if (setterParamType==readMethod.returnType) {
+                    bodyStringBuilder.append(
+                        """
                    ${getParamName(setterParamType)} tempValue = src.${readMethod.name}();
                 """.trimIndent()
-                )
+                    )
+                }else{
+                    //类型不兼容
+                    if(typesOption == IncompatibleTypesOption.IGNORE) {
+                        continue
+                    }
+                    //强制转换
+                    bodyStringBuilder.append(
+                        """
+                   ${getParamName(setterParamType)} tempValue = (${getParamName(setterParamType)})src.${readMethod.name}();
+                """.trimIndent()
+                    )
+                }
+
+
 
                 //应用值转换器
                 if (config?.propertyValueConverter?.shouldIntercept(
@@ -384,13 +405,14 @@ class SmartCopier {
                 }
 
                 bodyStringBuilder.append("}")
+                totalBodyStringBuilder.append(bodyStringBuilder.toString())
             }
 
             val methodString = """
             public void ${method}( java.lang.Object srcBean, java.lang.Object targetBean ){
                 $sourceName src = ($sourceName)srcBean;
                 $targetName target = ($targetName) targetBean;
-                $bodyStringBuilder
+                $totalBodyStringBuilder
             }
         """.trimIndent()
             if (debug) {

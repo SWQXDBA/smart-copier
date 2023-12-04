@@ -1,4 +1,5 @@
 import cn.hutool.core.bean.BeanUtil
+import javassist.expr.Cast
 import org.swqxdba.*
 import org.swqxdba.SmartCopier.Companion.debugGeneratedClassFileDir
 import org.swqxdba.SmartCopier.Companion.setDebugMode
@@ -11,21 +12,26 @@ data class Person(
     var age: Int,
     var sex: String,
     var array: IntArray = IntArray(1),
-    var array2: Array<IntArray> = emptyArray(),
+    var array2: Array<IntArray> = emptyArray(),//多层数组
+    var array3: Array<IntArray> = emptyArray(),//不兼容的数组测试
+    var list1: List<IntArray> = emptyList(),//不同泛型
     var typeArr: Array<String> = emptyArray(),
-    var genericType:List<List<Person>> = emptyList()
+    var genericType: List<List<Person>> = emptyList()
 )
 
 data class Animal(
     var name: String,
     var age: Int,
     var array: IntArray = IntArray(1),
-    var array2: Array<IntArray> = emptyArray(),
+    var array2: Array<IntArray> = emptyArray(),//多层数组
+    var array3: Array<*>? = null,//不兼容的数组测试
+    var list1: List<*>? = null,//不同泛型
     var typeArr: Array<String> = emptyArray(),
-    var genericType:List<List<Person>> = emptyList()
+    var genericType: List<List<Person>> = emptyList()
 )
 
 fun main(args: Array<String>) {
+
 
     setDebugMode(true)
     debugGeneratedClassFileDir = "your/path/"
@@ -80,11 +86,16 @@ fun main(args: Array<String>) {
         }
 
     )
+
+
     val copier = SmartCopier.getCopier(
-        Person::class.java, Animal::class.java, null
+        Person::class.java, Animal::class.java, CopyConfig(incompatibleTypesOption = IncompatibleTypesOption.CAST)
     )
     val person = Person("name", 15, "男")
     val animal = Animal("name2", 14)
+
+
+
     repeat(2) {
 
         val start = System.currentTimeMillis()

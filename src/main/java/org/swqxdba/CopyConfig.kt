@@ -73,7 +73,13 @@ interface PropertyMapperRuleCustomizer {
  * @param propertyMapperRuleCustomizer 用于客制化属性的对应关系
  */
 class CopyConfig(
-    val defaultValueProvider: PropertyValueProvider? = null,
-    val propertyValueConverter: PropertyValueConverter? = null,
-    val propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
+    var defaultValueProvider: PropertyValueProvider? = null,
+    var propertyValueConverter: PropertyValueConverter? = null,
+    var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
+    var incompatibleTypesOption: IncompatibleTypesOption = IncompatibleTypesOption.IGNORE
 )
+enum class IncompatibleTypesOption{
+
+    IGNORE,//忽略拷贝不兼容的属性
+    CAST//执行强制转换
+}
