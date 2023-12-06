@@ -1,4 +1,4 @@
-package org.swqxdba;
+package org.swqxdba.smartconvert;
 
 public interface Copier {
     /**
