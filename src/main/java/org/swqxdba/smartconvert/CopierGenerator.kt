@@ -167,8 +167,9 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
             val setterArgType: Type = writeMethodInfo.signature.argumentTypes[0]
 
             //处理默认值 计算出默认值后生成一个字段，等到这个Copier生成后调用一个setter方法把默认值放到字段中。
-            val defaultFieldName = "default_value_of_" + targetProperty.name
-            val setDefaultFieldMethodName = "set_default_value_for_$defaultFieldName"
+            //注意 每一种方法中的默认值可以不同!!!
+            val defaultFieldName = "${copyMethodType.name}_default_value_of_" + targetProperty.name
+            val setDefaultFieldMethodName = "${copyMethodType.name}_set_default_value_for_$defaultFieldName"
 
             val defaultValueProvider = config?.defaultValueProvider
             var defaultValue: Any? = null

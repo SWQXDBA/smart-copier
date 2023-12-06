@@ -11,6 +11,13 @@ import java.lang.reflect.Method
 interface PropertyValueProvider {
 
     /**
+     *
+     * 用于提供默认值 如果提供的默认值不为null 则会被赋值给目标类的该属性
+     *
+     * 对于copy,copyNonNullProperties和merge方法 可以提供不同的默认值，不会互相影响,
+     *
+     * 比如在copyNonNullProperties时可以全部提供null表示不使用默认值。
+     *
      * @param targetSetter 目标类该属性的setter方法
      * @param sourceGetter 源类该属性的getter方法
      * @param sourceClass 源类型
