@@ -7,6 +7,7 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.swqxdba.SmartUtil
+import java.io.File
 import java.lang.reflect.Method
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -88,14 +89,29 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
 
     fun generateClassName(sourceClass: Class<*>, targetClass: Class<*>, copyConfig: CopyConfig?): String {
 
-        val sourceClassName = sourceClass.simpleName
-        val targetClassName = targetClass.simpleName
+        val sourceClassName = sourceClass.name
+        val targetClassName = targetClass.name
         val className =
-            "SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${copyConfig?.let { copyConfig.hashCode() } ?: "default"}"
+            "SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${copyConfig?.let { copyConfig.hashCode() } ?: "default"}".replace(".","_")
         return className
     }
 
-    fun generateClass(): Class<*>? {
+
+    fun generateCopier(): Copier {
+        val generateClass = generateClass()
+        val copier = generateClass.newInstance() as Copier
+        //给字段设置值
+        for (fieldWrapper in generateContext.fields) {
+            fieldWrapper.value?.let { value ->
+                val field = generateClass.getDeclaredField(fieldWrapper.name)
+                field.isAccessible = true
+                field[copier] = value
+            }
+        }
+        return copier
+    }
+
+    private fun generateClass(): Class<*> {
         val cv = ClassWriter(ClassWriter.COMPUTE_FRAMES)
 
         val generateClassName = generateClassName(sourceClass, targetClass, config)
@@ -106,9 +122,10 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
             Constants.ACC_PUBLIC,
             generateClassName,
             null,
-            arrayOf(TypeUtils.getType("org.swqxdba.smartconvert.Copier")),
+            arrayOf(Type.getType(Copier::class.java)),
             Constants.SOURCE_FILE
         )
+
 
         EmitUtils.null_constructor(ce)
 
@@ -116,6 +133,12 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
 
         if (propertyValueConverter != null) {
             generateContext.setValueConverter(propertyValueConverter)
+            ce.declare_field(
+                Opcodes.ACC_PRIVATE,
+                generateContext.convertField!!.name,
+                Type.getType(PropertyValueConverter::class.java),
+                null
+            )
         }
 
         generateMethod(ce, COPY_DESCRIPTOR, CopyMethodType.COPY)
@@ -125,7 +148,13 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
         ce.end_class()
 
         val toByteArray = cv.toByteArray()
-        Files.write(Paths.get(generateClassName + ".class"), toByteArray)
+        if(SmartCopier.debugMode){
+            SmartCopier.debugOutPutDir?.let { dir->
+                File(dir).mkdirs()
+                Files.write(Paths.get(dir,generateClassName + ".class"), toByteArray)
+            }
+            SmartCopier.debugOutputStream?.write(toByteArray)
+        }
         return defineClass(generateClassName, toByteArray)
     }
 
@@ -166,10 +195,9 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
             val getterReturnType: Type = readMethodInfo.signature.returnType
             val setterArgType: Type = writeMethodInfo.signature.argumentTypes[0]
 
-            //处理默认值 计算出默认值后生成一个字段，等到这个Copier生成后调用一个setter方法把默认值放到字段中。
+            //处理默认值 计算出默认值后生成一个字段，等到这个Copier生成后调用反射把默认值放到字段中。
             //注意 每一种方法中的默认值可以不同!!!
             val defaultFieldName = "${copyMethodType.name}_default_value_of_" + targetProperty.name
-            val setDefaultFieldMethodName = "${copyMethodType.name}_set_default_value_for_$defaultFieldName"
 
             val defaultValueProvider = config?.defaultValueProvider
             var defaultValue: Any? = null
@@ -179,7 +207,6 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
                     ce.declare_field(Opcodes.ACC_PRIVATE, defaultFieldName, setterArgType, null)
                     generateContext.addField(
                         defaultFieldName,
-                        setDefaultFieldMethodName,
                         defaultValue
                     )
                 }
@@ -306,7 +333,7 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
                         } else {
                             invokeReader()
                         }
-                        if(needUseDefaultValue()){
+                        if (needUseDefaultValue()) {
                             tryGetDefaultValue()
                         }
                         //复制栈顶元素用于执行if指令
@@ -339,8 +366,6 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
                         if (needUseDefaultValue()) {
                             tryGetDefaultValue()
                         }
-
-
 
                         ///此时栈元素为[target,currentValue]///
 

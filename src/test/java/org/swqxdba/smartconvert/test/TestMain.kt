@@ -1,5 +1,6 @@
-package org.swqxdba.smartconvert
+package org.swqxdba.smartconvert.test
 
+import org.swqxdba.smartconvert.*
 import java.lang.reflect.Method
 import java.util.*
 
@@ -9,6 +10,8 @@ class Person {
 }
 
 fun main() {
+    SmartCopier.debugMode = true
+    SmartCopier.debugOutPutDir = "."
     val config = CopyConfig(
         object : PropertyValueProvider {
             override fun provide(
@@ -28,13 +31,29 @@ fun main() {
             }
 
         },
+        object:PropertyValueConverter{
+            override fun shouldIntercept(
+                sourceGetter: Method,
+                targetSetter: Method,
+                sourceClass: Class<*>,
+                targetClass: Class<*>,
+                copyMethodType: CopyMethodType
+            ): Boolean {
+                return sourceGetter.name.lowercase(Locale.getDefault()).contains("name")
+            }
+
+            override fun convert(oldValue: Any?): Any? {
+                return "intercepted_name!!!"
+            }
+
+        }
     )
-    val generateClass = CopierGenerator(Person::class.java, Person::class.java,config).generateClass()
-    val newInstance = generateClass!!.newInstance() as Copier
+    val newInstance = CopierGenerator(Person::class.java, Person::class.java,config).generateCopier()
     val person = Person()
     person.name = "personName"
     person.age = 666
     val person2 = Person()
     newInstance.copy(person, person2)
+    println(person2.name)
     println(person2.age)
 }
