@@ -6,14 +6,13 @@ import net.sf.cglib.core.*
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
-import org.swqxdba.SmartUtil
 import java.io.File
 import java.lang.reflect.Method
 import java.nio.file.Files
 import java.nio.file.Paths
 
 
-class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val config: CopyConfig? = null) {
+internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val config: CopyConfig? = null) {
 
     val generateContext = GenerateContext()
 
@@ -92,7 +91,10 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
         val sourceClassName = sourceClass.name
         val targetClassName = targetClass.name
         val className =
-            "SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${copyConfig?.let { copyConfig.hashCode() } ?: "default"}".replace(".","_")
+            "SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${copyConfig?.let { copyConfig.hashCode() } ?: "default"}".replace(
+                ".",
+                "_"
+            )
         return className
     }
 
@@ -129,17 +131,14 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
 
         EmitUtils.null_constructor(ce)
 
-        val propertyValueConverter = config?.propertyValueConverter
-
-        if (propertyValueConverter != null) {
-            generateContext.setValueConverter(propertyValueConverter)
-            ce.declare_field(
-                Opcodes.ACC_PRIVATE,
-                generateContext.convertField!!.name,
-                Type.getType(PropertyValueConverter::class.java),
-                null
-            )
+        var converterCounter = 1
+        config?.propertyValueConverters?.forEach {
+            val fieldName = "propertyValueConverter${converterCounter++}"
+            generateContext.addValueConverter(fieldName,it)
+            ce.declare_field(Opcodes.ACC_PRIVATE,fieldName,Type.getType(PropertyValueConverter::class.java),null)
         }
+
+
 
         generateMethod(ce, COPY_DESCRIPTOR, CopyMethodType.COPY)
         generateMethod(ce, COPY_NONNULL_DESCRIPTOR, CopyMethodType.COPY_NONNULL)
@@ -148,10 +147,10 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
         ce.end_class()
 
         val toByteArray = cv.toByteArray()
-        if(SmartCopier.debugMode){
-            SmartCopier.debugOutPutDir?.let { dir->
+        if (SmartCopier.debugMode) {
+            SmartCopier.debugOutPutDir?.let { dir ->
                 File(dir).mkdirs()
-                Files.write(Paths.get(dir,generateClassName + ".class"), toByteArray)
+                Files.write(Paths.get(dir, generateClassName + ".class"), toByteArray)
             }
             SmartCopier.debugOutputStream?.write(toByteArray)
         }
@@ -166,6 +165,19 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
 
 
         val codeEmitter = ce.begin_method(Opcodes.ACC_PUBLIC, signature, null)
+
+        val methodEndLabel = codeEmitter.make_label()
+
+        //这个判断其实可以不用 因为copy的应该是java bean而不是基础类型 只是为了防止错误
+        if (!TypeUtils.isPrimitive(sourceType)) {
+            codeEmitter.load_arg(1)
+            codeEmitter.ifnull(methodEndLabel)
+
+        }
+        if (!TypeUtils.isPrimitive(sourceType)) {
+            codeEmitter.load_arg(0)
+            codeEmitter.ifnull(methodEndLabel)
+        }
 
 
         //从局部变量表中读取source和target变量,把传入的两个object参数转换为对应的类型,压入操作数栈
@@ -214,19 +226,18 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
             }
 
             //处理转换器converter
-            var useConverter = false
-            if (generateContext.convertField != null) {
-                if (config!!.propertyValueConverter!!.shouldIntercept(
-                        reader,
-                        writer,
-                        sourceClass,
-                        targetClass,
-                        copyMethodType
-                    )
-                ) {
-                    useConverter = true
-                }
+
+            val converterField = generateContext.matchConverter {
+                it.shouldIntercept(
+                    reader,
+                    writer,
+                    sourceClass,
+                    targetClass,
+                    copyMethodType
+                )
             }
+
+            val useConverter = converterField != null
 
 
             val doSwap = {
@@ -248,7 +259,7 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
             //不消耗栈元素 生成一个转换后的值
             val invokeReadAndConvert = {
                 codeEmitter.load_this()
-                codeEmitter.getfield(generateContext.convertField!!.name)
+                codeEmitter.getfield(converterField!!.name)
                 invokeReader()
                 codeEmitter.invoke_interface(
                     Type.getType(PropertyValueConverter::class.java),
@@ -391,6 +402,7 @@ class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val 
 
         }
 
+        codeEmitter.visitLabel(methodEndLabel)
         codeEmitter.return_value()
         codeEmitter.end_method()
     }

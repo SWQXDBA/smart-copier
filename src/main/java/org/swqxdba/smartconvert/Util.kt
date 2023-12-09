@@ -1,9 +1,9 @@
-package org.swqxdba
+package org.swqxdba.smartconvert
 
 import java.beans.Introspector
 import java.beans.PropertyDescriptor
 
-object SmartUtil {
+internal object SmartUtil {
     fun getPropertyDescriptorMap(clazz: Class<*>): Map<String, PropertyDescriptor> {
         val beanInfo = Introspector.getBeanInfo(clazz) ?: return emptyMap()
 

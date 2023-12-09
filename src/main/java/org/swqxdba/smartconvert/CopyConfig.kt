@@ -3,7 +3,6 @@ package org.swqxdba.smartconvert
 import java.lang.reflect.Method
 
 
-
 /**
  * 默认值提供者，当源头中数据为null时 将设置defaultValueProvider提供的默认值,defaultValueProvider对每个属性只会被调用一次
  * 注意 如果属性类型是primitive的 则永远不会使用默认值!
@@ -81,11 +80,21 @@ interface PropertyMapperRuleCustomizer {
 
 /**
  * @param defaultValueProvider 默认值提供者
- * @param propertyValueConverter 属性值转换器
+ * @param propertyValueConverters 属性值转换器
  * @param propertyMapperRuleCustomizer 用于客制化属性的对应关系
  */
 class CopyConfig(
     var defaultValueProvider: PropertyValueProvider? = null,
-    var propertyValueConverter: PropertyValueConverter? = null,
+    var propertyValueConverters: MutableList<PropertyValueConverter>? = mutableListOf(),
     var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
-)
+
+    ) {
+    fun addConverter(vararg converter: PropertyValueConverter) {
+        var list = propertyValueConverters
+        if (list == null) {
+            list = mutableListOf()
+        }
+        list.addAll(converter)
+        propertyValueConverters = list
+    }
+}
