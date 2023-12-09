@@ -83,4 +83,38 @@ class SpeedTest {
         }
 
     }
+
+    @Test
+    fun test2() {
+        SmartCopier.getCopier(HotData::class.java,HotData::class.java)//预热
+
+        val testCount = 100_000_000
+        val cur = System.currentTimeMillis()
+        val copier = SmartCopier.getCopier(Data::class.java,Data::class.java)
+        println("generate copier use ${System.currentTimeMillis()-cur} mills")
+
+        val src = Data("1","2")
+        var target = Data()
+
+
+        repeat(2){
+            testTime("hand copy"){
+                repeat(testCount){
+                    handCopy(src,target)
+                }
+            }
+        }
+
+        repeat(2){
+            testTime("smart copier"){
+                repeat(testCount){
+                    copier.copy(src,target)
+                }
+            }
+        }
+
+
+
+
+    }
 }
