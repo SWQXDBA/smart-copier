@@ -1,9 +1,12 @@
 package org.swqxdba.smartconvert
 
+
+import java.beans.BeanInfo
+
 import java.beans.Introspector
 import java.beans.PropertyDescriptor
 
-internal object SmartUtil {
+internal object InternalUtil {
     fun getPropertyDescriptorMap(clazz: Class<*>): Map<String, PropertyDescriptor> {
         val beanInfo = Introspector.getBeanInfo(clazz) ?: return emptyMap()
 
@@ -17,6 +20,12 @@ internal object SmartUtil {
 
     fun getPropertyDescriptor(clazz: Class<*>, name: String): PropertyDescriptor? {
         return getPropertyDescriptorMap(clazz)[name]
+    }
+
+
+    fun getPropertyDescriptors(clazz: Class<*>?): Array<PropertyDescriptor> {
+        val beanInfo: BeanInfo = Introspector.getBeanInfo(clazz)
+        return beanInfo.propertyDescriptors.filter { it.name!="class" }.toTypedArray()
     }
 }
 

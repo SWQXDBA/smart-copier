@@ -1,7 +1,5 @@
 package org.swqxdba.smartconvert
 
-
-import cn.hutool.core.bean.BeanUtil
 import net.sf.cglib.core.*
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -49,7 +47,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
     //调整属性映射
     init {
-        val targetProperties = BeanUtil.getPropertyDescriptors(targetClass)
+        val targetProperties = InternalUtil.getPropertyDescriptors(targetClass)
 
         var mapper = mutableMapOf<Method, Method>()
 
@@ -60,7 +58,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         for (targetProperty in targetProperties) {
             val writeMethod = targetProperty.getWriteMethod() ?: continue
 
-            val sourceProperty = SmartUtil.getPropertyDescriptor(sourceClass, targetProperty.name) ?: continue
+            val sourceProperty = InternalUtil.getPropertyDescriptor(sourceClass, targetProperty.name) ?: continue
             val readMethod = sourceProperty.getReadMethod() ?: continue
             mapper[readMethod] = writeMethod
 
@@ -197,7 +195,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         //此时操作数栈是空的
 
         for ((reader, writer) in methodMapper) {
-            val targetProperties = BeanUtil.getPropertyDescriptors(targetClass)
+            val targetProperties = InternalUtil.getPropertyDescriptors(targetClass)
             val targetProperty = targetProperties.find { it.writeMethod == writer } ?: continue
             val targetGetterMethod = targetProperty.readMethod
             val targetGetterMethodInfo = ReflectUtils.getMethodInfo(targetGetterMethod)
