@@ -18,7 +18,7 @@ class SpeedTest {
     //用于预热
     class HotData(val field1: String?)
 
-    fun handCopy(src: Data?, target: Data?) {
+    fun hardCodeCopy(src: Data?, target: Data?) {
         if (src != null && target != null) {
             target.field1 = src.field1
             target.field2 = src.field2
@@ -50,9 +50,9 @@ class SpeedTest {
 
 
         repeat(2){
-            testTime("hand copy"){
+            testTime("hard code copy"){
                 repeat(testCount){
-                    handCopy(src,target)
+                    hardCodeCopy(src,target)
                 }
             }
         }
@@ -98,9 +98,9 @@ class SpeedTest {
 
 
         repeat(2){
-            testTime("hand copy"){
+            testTime("hard code copy"){
                 repeat(testCount){
-                    handCopy(src,target)
+                    hardCodeCopy(src,target)
                 }
             }
         }
