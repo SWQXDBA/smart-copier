@@ -26,7 +26,7 @@ object SmartCopier {
     var debugOutputStream: OutputStream? = null
 
     @JvmOverloads
-    fun getCopier(sourceClass: Class<*>, targetClass: Class<*>, config: CopyConfig? = null): Copier {
+    fun getCopier(sourceClass: Class<*>, targetClass: Class<*>, config: CopyConfig? = CopyConfig()): Copier {
         val hash = "" + sourceClass.hashCode() + targetClass.hashCode() + config.hashCode()
         return cache.computeIfAbsent(hash) {
             CopierGenerator(sourceClass, targetClass, config).generateCopier()
@@ -35,7 +35,7 @@ object SmartCopier {
 
     @JvmStatic
     @JvmOverloads
-    fun copy(src: Any?, target: Any?, config: CopyConfig? = null) {
+    fun copy(src: Any?, target: Any?, config: CopyConfig? = CopyConfig()) {
         if (src == null || target == null) {
             return
         }
@@ -44,7 +44,7 @@ object SmartCopier {
 
     @JvmStatic
     @JvmOverloads
-    fun <T> copyToList(src: Iterable<*>?, targetClass: Class<T>, config: CopyConfig? = null): MutableList<T> {
+    fun <T> copyToList(src: Iterable<*>?, targetClass: Class<T>, config: CopyConfig? = CopyConfig()): MutableList<T> {
         if (src == null) {
             return mutableListOf()
         }

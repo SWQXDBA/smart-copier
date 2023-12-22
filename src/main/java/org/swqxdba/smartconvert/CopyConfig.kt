@@ -1,5 +1,6 @@
 package org.swqxdba.smartconvert
 
+import org.swqxdba.smartconvert.container.ContainerAdaptor
 import java.lang.reflect.Method
 
 
@@ -85,7 +86,7 @@ interface PropertyMapperRuleCustomizer {
  */
 class CopyConfig(
     var defaultValueProvider: PropertyValueProvider? = null,
-    var propertyValueConverters: MutableList<PropertyValueConverter>? = mutableListOf(),
+    var propertyValueConverters: MutableList<PropertyValueConverter>? = mutableListOf(ContainerAdaptor()),
     var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
 
     ) {
@@ -96,5 +97,9 @@ class CopyConfig(
         }
         list.addAll(converter)
         propertyValueConverters = list
+    }
+
+    companion object {
+        val currentConfig: ThreadLocal<CopyConfig> = ThreadLocal()
     }
 }

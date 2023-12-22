@@ -47,6 +47,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
     //调整属性映射
     init {
+        CopyConfig.currentConfig.set(config)
         val targetProperties = InternalUtil.getPropertyDescriptors(targetClass)
 
         var mapper = mutableMapOf<Method, Method>()
@@ -108,6 +109,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                 field[copier] = value
             }
         }
+        CopyConfig.currentConfig.set(null)
         return copier
     }
 
@@ -224,7 +226,6 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             }
 
             //处理转换器converter
-
             val converterField = generateContext.matchConverter {
                 it.shouldIntercept(
                     reader,
@@ -236,6 +237,12 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             }
 
             val useConverter = converterField != null
+            //如果类型不兼容 且不适用converter 则忽略该属性
+            if(!writer.parameterTypes[0].isAssignableFrom(reader.returnType)){
+                if(!useConverter){
+                    continue
+                }
+            }
 
 
             val doSwap = {
