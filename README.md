@@ -2,7 +2,7 @@
 
 运行时生成bean copier代码的高效率工具。    
 
-使用java assist库在运行时生成代码，兼顾运行效率和开发效率。  
+使用cglib asm库在运行时生成代码，兼顾运行效率和开发效率。  
 其性能是BeanUtil的200-1000倍，等同于硬编码。  
 比cglib的beanCopier提供了额外的设置功能，如默认值，是否用null覆盖，是否忽视null属性等，以及设置特殊的属性对应关系等等。  
 
@@ -49,10 +49,10 @@ copy方法会用src中的属性给target中的属性直接赋值
 用src中不为null的属性给target中的属性赋值,类似于部分更新
 
 ## merge
-用当target中的属性为null时，才用src中的属性进行赋值。
+用当target中的属性为null时，才用src中的属性进行赋值。可以理解为合并对象
 
 
-# 设置类
+# 设置类(CopyConfig)
 设置类用来在生成Copier实例时，对生成代码的逻辑进行定制。  
 
 注意：CopyConfig对象一旦被用于生成Copier实例，其可能不会被回收，请不要每次都创建新的CopyConfig！！！
@@ -185,6 +185,8 @@ currentMapper的value是目标属性的setter方法。
 > PropertyMapperRuleCustomizer只会在Copier实例生成时被调用，后续拷贝中属性的对应关系是确定的，不会有额外开销。  
 
 #  集合/数组容器处理
+在默认的CopierConfig中 有一个叫ContainerAdaptor的PropertyValueConverter 用于转换集合/数组类型的属性.  
+
 支持对集合和数组进行处理，前提是元素类型必须兼容   
 (判断方式为class1.isAssignableFrom(class2))  
 
