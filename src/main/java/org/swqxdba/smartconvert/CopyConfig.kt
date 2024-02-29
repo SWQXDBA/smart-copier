@@ -86,7 +86,7 @@ interface PropertyMapperRuleCustomizer {
  */
 class CopyConfig(
     var defaultValueProvider: PropertyValueProvider? = null,
-    var propertyValueConverters: MutableList<PropertyValueConverter>? = mutableListOf(ContainerAdaptor()),
+    var propertyValueConverters: MutableList<PropertyValueConverter>? =null,
     var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
 
     ) {

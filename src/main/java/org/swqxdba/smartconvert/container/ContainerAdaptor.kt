@@ -3,6 +3,7 @@ package org.swqxdba.smartconvert.container
 import org.swqxdba.smartconvert.CopyMethodType
 import org.swqxdba.smartconvert.InternalUtil
 import org.swqxdba.smartconvert.PropertyValueConverter
+import org.swqxdba.smartconvert.SmartCopier
 import java.lang.Exception
 import java.lang.reflect.Method
 
@@ -30,9 +31,17 @@ class ContainerAdaptor : PropertyValueConverter {
         val getterElementClass = InternalUtil.getElementClass(getterType) ?: return false
         val setterOuterClass = InternalUtil.getOuterClass(setterType) ?: return false
         val getterOuterClass = InternalUtil.getOuterClass(getterType) ?: return false
-        //集合元素的类型都相同 且集合类型兼容
-        if (setterElementClass == getterElementClass && setterOuterClass.isAssignableFrom(getterOuterClass)) {
-            return false
+        //集合元素的类型都不相同 且集合类型兼容
+        if (setterElementClass != getterElementClass && !setterOuterClass.isAssignableFrom(getterOuterClass)) {
+            //不可以转化成兼容的基本类型
+            if (InternalUtil.getPrimitiveClass(setterElementClass) != InternalUtil.getPrimitiveClass(getterElementClass)) {
+                //尝试用beanConverter
+                val beanConverter =
+                    SmartCopier.beanConvertProvider?.tryGetConverter(getterElementClass, setterElementClass)
+                        ?: return false
+                elementTransfer = { beanConverter.doConvert(it) }
+            }
+
         }
 
         try {
@@ -43,18 +52,26 @@ class ContainerAdaptor : PropertyValueConverter {
             return false
         }
 
-        //不兼容的类型
-        if (!setterElementClass.isAssignableFrom(getterElementClass)) {
-            //可以转化成兼容的基本类型
-            if (InternalUtil.getPrimitiveClass(setterElementClass) == InternalUtil.getPrimitiveClass(getterElementClass)) {
-                return true
-            }
-            return false;
-        }
-
 
         return true;
 
+    }
+
+    private fun isJavaImmutableType(type: Class<*>): Boolean {
+        return type == String::class.java ||
+                type == Byte::class.java ||
+                type == Short::class.java ||
+                type == Int::class.java ||
+                type == Long::class.java ||
+                type == Float::class.java ||
+                type == Double::class.java ||
+                type == Char::class.java ||
+                type == Boolean::class.java ||
+                type == java.util.Date::class.java ||
+                type == java.time.LocalDate::class.java ||
+                type == java.sql.Timestamp::class.java ||
+                type == java.sql.Date::class.java ||
+                type == java.sql.Time::class.java
     }
 
     override fun convert(oldValue: Any?): Any? {

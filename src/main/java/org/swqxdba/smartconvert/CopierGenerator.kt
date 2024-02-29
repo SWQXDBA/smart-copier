@@ -4,6 +4,7 @@ import net.sf.cglib.core.*
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
+import org.swqxdba.smartconvert.converters.DefaultConverterGenerator
 import java.io.File
 import java.lang.reflect.Method
 import java.nio.file.Files
@@ -131,11 +132,8 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
         EmitUtils.null_constructor(ce)
 
-        var converterCounter = 1
         config?.propertyValueConverters?.forEach {
-            val fieldName = "propertyValueConverter${converterCounter++}"
-            generateContext.addValueConverter(fieldName,it)
-            ce.declare_field(Opcodes.ACC_PRIVATE,fieldName,Type.getType(PropertyValueConverter::class.java),null)
+            generateContext.addValueConverter(it, ce)
         }
 
 
@@ -157,7 +155,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         return defineClass(generateClassName, toByteArray)
     }
 
-    fun generateMethod(ce: ClassEmitter, signature: Signature, copyMethodType: CopyMethodType) {
+    private fun generateMethod(ce: ClassEmitter, signature: Signature, copyMethodType: CopyMethodType) {
 
 
         val sourceType: Type = Type.getType(sourceClass)
@@ -226,7 +224,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             }
 
             //处理转换器converter
-            val converterField = generateContext.matchConverter {
+            var converterField = generateContext.matchConverter {
                 it.shouldIntercept(
                     reader,
                     writer,
@@ -235,11 +233,22 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     copyMethodType
                 )
             }
+            //尝试寻找自带的默认转换器 保证是单独的实例 或者至少是线程安全的 幂等的
+            if (converterField == null) {
+                converterField = DefaultConverterGenerator.tryGetConverter(
+                    reader,
+                    writer,
+                    sourceClass,
+                    targetClass,
+                    copyMethodType
+                )?.let { defaultConverter-> generateContext.addValueConverter(defaultConverter, ce) }
+            }
+
 
             val useConverter = converterField != null
             //如果类型不兼容 且不适用converter 则忽略该属性
-            if(!writer.parameterTypes[0].isAssignableFrom(reader.returnType)){
-                if(!useConverter){
+            if (!writer.parameterTypes[0].isAssignableFrom(reader.returnType)) {
+                if (!useConverter) {
                     continue
                 }
             }

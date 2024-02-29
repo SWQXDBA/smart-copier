@@ -1,6 +1,7 @@
 package org.swqxdba.smartconvert.container
 
 import org.swqxdba.smartconvert.InternalUtil
+import org.swqxdba.smartconvert.InternalUtil.findCollectionConstructor
 import java.lang.RuntimeException
 import java.lang.reflect.Modifier
 import java.lang.reflect.Type
@@ -14,9 +15,9 @@ class IterWrapper(type: Type) {
 
     val instanceCreator: (Int) -> Any
 
-    val fillExecutor: (Any, List<Any?>) -> Unit
+    val fillExecutor: (Any, Collection<Any?>) -> Unit
 
-    val elementsResolver: (Any) -> List<Any>
+    val elementsResolver: (Any) -> Collection<Any>
 
     init {
 
@@ -68,13 +69,11 @@ class IterWrapper(type: Type) {
             }
             val modifiers = containerClass.modifiers
             val canNewDirect = !(Modifier.isAbstract(modifiers) || Modifier.isInterface(modifiers))
-            if (canNewDirect) {
-                instanceCreator = { size ->
-                    containerClass.getConstructor(Int::class.java).newInstance(size)
-                }
+            instanceCreator = if (canNewDirect) {
+                {size -> findCollectionConstructor(containerClass)(size) }
             } else {
-                instanceCreator = if (containerClass.isAssignableFrom(ArrayList::class.java)) {
-                    { ArrayList<Any>(it) }
+                if (containerClass.isAssignableFrom(ArrayList::class.java)) {
+                    { ArrayList(it) }
                 } else if (containerClass.isAssignableFrom(HashSet::class.java)) {
                     { HashSet<Any>(it) }
                 } else {
@@ -86,7 +85,7 @@ class IterWrapper(type: Type) {
                 (arr as java.util.Collection<Any>).addAll(elements)
             }
             elementsResolver = { arr ->
-                (arr as java.util.Collection<Any>).toList()
+                arr as Collection<Any>
             }
         }
     }

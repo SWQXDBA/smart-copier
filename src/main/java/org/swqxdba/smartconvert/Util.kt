@@ -5,10 +5,13 @@ import java.beans.BeanInfo
 
 import java.beans.Introspector
 import java.beans.PropertyDescriptor
+import java.lang.RuntimeException
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.util.LinkedList
+import java.util.concurrent.ConcurrentHashMap
 
 internal object InternalUtil {
     fun getPropertyDescriptorMap(clazz: Class<*>): Map<String, PropertyDescriptor> {
@@ -82,6 +85,24 @@ internal object InternalUtil {
         }
 
         return null
+    }
+
+    /**
+     * 获取常见集合的带初始容量的构造方法 必须保证传入的不是抽象类或者接口
+     */
+    fun findCollectionConstructor(type:Class<*>): (Int)->Any {
+        if(type == ArrayList::class.java){
+            return {  java.util.ArrayList<Any>(it) }
+        }else  if(type == LinkedList::class.java){
+            return {  java.util.LinkedList<Any>() }
+        }else  if(type == HashMap::class.java){
+            return {  java.util.HashMap<Any,Any>(it) }
+        }
+        else  if(type == HashSet::class.java){
+            return {  java.util.HashSet<Any>(it) }
+        }
+        val noArgsConstructor = type.getConstructor()
+        return {noArgsConstructor.newInstance()}
     }
 }
 

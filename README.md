@@ -209,8 +209,9 @@ String[]
 
 List&lt;UserEntity&gt; 到List&lt;UserDto&gt; 因为元素类型不兼容,
 且不知道如何进行元素的转换(如果强行赋值会造成堆污染)  
-如果有这种需求 可以手动调用SmartCopier.copyToList来进行额外的处理.
-
+如果有这种需求 可以手动调用SmartCopier.copyToList来进行额外的处理.  
+如果目标类型为primitive的数组 但是来源元素中有null 那么目标数组中的对应元素会是默认的初始值 比如:
+[null,123]->[0,123]
 # debug模式
 如果想查看生成的copy方法的方法源码，或者是生成的class字节码:
 ```
@@ -265,3 +266,7 @@ SmartCopier本身是线程安全的,包括生成Copier类的过程，以及执�
 
 ## 内存泄漏注意
 被传入SmartCopier的CopyConfig对象在程序生命周期中都不会被回收
+
+### 处理不兼容的类型
+请使用SmartCopier.beanConvertProvider来设置全局的转换器，比如将一个bean转换成另一个bean等等。  
+或者进行map 和 bean之间的转换。
