@@ -14,9 +14,16 @@ internal class GenerateContext(
     }
 
     fun addValueConverter(valueConverter: PropertyValueConverter, ce: ClassEmitter):FieldWrapper {
+        val fieldWrapper = addStatefulValueConverter(valueConverter, ce)
+        this.convertFields += fieldWrapper
+        return fieldWrapper
+    }
+
+    //添加临时的转换器 这个转换器暂时不会被match到其他字段中 这样保证一个有状态的转换器不会被混用
+    fun addStatefulValueConverter(valueConverter: PropertyValueConverter, ce: ClassEmitter):FieldWrapper {
         val converterFieldName = "propertyValueConverter${converterCounter++}"
         val fieldWrapper = FieldWrapper(converterFieldName, valueConverter)
-        this.convertFields += fieldWrapper
+
         fields.add(fieldWrapper)
         ce.declare_field(
             Opcodes.ACC_PRIVATE,

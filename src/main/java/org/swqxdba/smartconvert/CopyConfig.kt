@@ -99,7 +99,26 @@ class CopyConfig(
         propertyValueConverters = list
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is CopyConfig) return false
+
+        if (defaultValueProvider != other.defaultValueProvider) return false
+        if (propertyValueConverters != other.propertyValueConverters) return false
+        if (propertyMapperRuleCustomizer != other.propertyMapperRuleCustomizer) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = defaultValueProvider?.hashCode() ?: 0
+        result = 31 * result + (propertyValueConverters?.hashCode() ?: 0)
+        result = 31 * result + (propertyMapperRuleCustomizer?.hashCode() ?: 0)
+        return result
+    }
+
     companion object {
         val currentConfig: ThreadLocal<CopyConfig> = ThreadLocal()
     }
+
 }

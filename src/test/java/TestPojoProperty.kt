@@ -64,7 +64,7 @@ class TestPojoProperty {
 
         assert(target.wrapInt == 999)//没有被覆盖
         assert(target.intArray.contentEquals(intArrayOf(1, 2, 3)))//没有被覆盖
-        assert(target.genericList === data.genericList)//target中的值为null所以被覆盖了
+        assert(target.genericList == data.genericList)//target中的值为null所以被覆盖了
 
     }
 

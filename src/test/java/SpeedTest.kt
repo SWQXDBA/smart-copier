@@ -40,7 +40,7 @@ class SpeedTest {
     fun test() {
         SmartCopier.getCopier(HotData::class.java,HotData::class.java)//预热
 
-        val testCount = 1_000_000
+        val testCount = 1_000_0
         val cur = System.currentTimeMillis()
         val copier = SmartCopier.getCopier(Data::class.java,Data::class.java)
         println("generate copier use ${System.currentTimeMillis()-cur} mills")

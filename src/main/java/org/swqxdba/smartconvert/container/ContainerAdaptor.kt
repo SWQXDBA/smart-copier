@@ -15,6 +15,10 @@ class ContainerAdaptor : PropertyValueConverter {
 
     var elementTransfer: ((Any) -> Any)? = null
 
+    var sourceGetter:Method?=null
+    var targetSetter:Method?=null
+
+
     override fun shouldIntercept(
         sourceGetter: Method,
         targetSetter: Method,
@@ -22,6 +26,8 @@ class ContainerAdaptor : PropertyValueConverter {
         targetClass: Class<*>,
         copyMethodType: CopyMethodType
     ): Boolean {
+        this.sourceGetter = sourceGetter
+        this.targetSetter = targetSetter
         val setterType = targetSetter.genericParameterTypes[0]
         val getterType = sourceGetter.genericReturnType
         if (!IterWrapper.canWrap(setterType) || !IterWrapper.canWrap(getterType)) {
@@ -31,7 +37,7 @@ class ContainerAdaptor : PropertyValueConverter {
         val getterElementClass = InternalUtil.getElementClass(getterType) ?: return false
         val setterOuterClass = InternalUtil.getOuterClass(setterType) ?: return false
         val getterOuterClass = InternalUtil.getOuterClass(getterType) ?: return false
-        //集合元素的类型都不相同 且集合类型兼容
+        //集合元素的类型不相同 且不兼容
         if (setterElementClass != getterElementClass && !setterOuterClass.isAssignableFrom(getterOuterClass)) {
             //不可以转化成兼容的基本类型
             if (InternalUtil.getPrimitiveClass(setterElementClass) != InternalUtil.getPrimitiveClass(getterElementClass)) {

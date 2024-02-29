@@ -241,7 +241,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     sourceClass,
                     targetClass,
                     copyMethodType
-                )?.let { defaultConverter-> generateContext.addValueConverter(defaultConverter, ce) }
+                )?.let { defaultConverter-> generateContext.addStatefulValueConverter(defaultConverter, ce) }
             }
 
 
