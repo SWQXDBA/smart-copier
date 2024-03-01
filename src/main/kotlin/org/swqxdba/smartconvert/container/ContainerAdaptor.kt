@@ -37,8 +37,9 @@ class ContainerAdaptor : PropertyValueConverter {
         val getterElementClass = InternalUtil.getElementClass(getterType) ?: return false
         val setterOuterClass = InternalUtil.getOuterClass(setterType) ?: return false
         val getterOuterClass = InternalUtil.getOuterClass(getterType) ?: return false
+
         //集合元素的类型不相同 且不兼容
-        if (setterElementClass != getterElementClass && !setterOuterClass.isAssignableFrom(getterOuterClass)) {
+        if (setterElementClass != getterElementClass && !setterElementClass.isAssignableFrom(getterElementClass) ) {
             val primitiveClass1 = InternalUtil.getPrimitiveClass(setterElementClass)
             val primitiveClass2 = InternalUtil.getPrimitiveClass(getterElementClass)
             //不可以转化成兼容的基本类型

@@ -23,6 +23,7 @@ import java.util.List;
 @FieldNameConstants
 public class Question extends BaseEntity {
 
+    List<Bank> banks;
     /**
      * 试题题干
      */

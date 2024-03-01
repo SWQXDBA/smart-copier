@@ -22,6 +22,7 @@ import java.util.List;
 public class QuestionDto  extends BaseDto{
 
 
+    List<BankDto> banks;
     /**
      * 试题题干
      */

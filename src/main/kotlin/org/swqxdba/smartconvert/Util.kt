@@ -99,10 +99,12 @@ internal object InternalUtil {
         if (clazz.isPrimitive) {
             return clazz
         }
-        val field: Field? = clazz.getField("TYPE")
-        if (field == null) {
+        val field: Field = try {
+            clazz.getField("TYPE")
+        }catch (e:NoSuchFieldException){
             return null
         }
+
 
         if (field.type == Class::class.java) {
             field.isAccessible = true
