@@ -75,12 +75,12 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         //校验映射关系 validate mapper
         for (mutableEntry in mapper) {
             val getter = mutableEntry.key
-            if (getter.declaringClass != sourceClass) {
-                throw RuntimeException("the method of ${getter.name} not belong Class ${sourceClass.name}")
+            if (!getter.declaringClass.isAssignableFrom(sourceClass)) {
+                throw RuntimeException("the method of ${getter.name} not assignableFrom Class ${sourceClass.name}")
             }
             val setter = mutableEntry.value
-            if (setter.declaringClass != targetClass) {
-                throw RuntimeException("the method of ${setter.name} not belong Class ${targetClass.name}")
+            if (!setter.declaringClass.isAssignableFrom(targetClass)) {
+                throw RuntimeException("the method of ${setter.name} not assignableFrom Class ${targetClass.name}")
             }
         }
         methodMapper = mapper
@@ -241,7 +241,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     sourceClass,
                     targetClass,
                     copyMethodType
-                )?.let { defaultConverter-> generateContext.addStatefulValueConverter(defaultConverter, ce) }
+                )?.let { defaultConverter -> generateContext.addStatefulValueConverter(defaultConverter, ce) }
             }
 
 

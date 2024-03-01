@@ -26,6 +26,7 @@ internal object InternalUtil {
     fun getPropertyDescriptor(clazz: Class<*>, name: String): PropertyDescriptor? {
         return getPropertyDescriptorMap(clazz)[name]
     }
+
     fun getPropertyDescriptors(clazz: Class<*>): Array<PropertyDescriptor> {
         val propertyDescriptors = mutableListOf<PropertyDescriptor>()
 
@@ -34,6 +35,9 @@ internal object InternalUtil {
         val setters = mutableMapOf<String, Method>()
 
         for (method in methods) {
+            if (method.modifiers == Modifier.PRIVATE || method.modifiers == Modifier.PROTECTED || method.modifiers == Modifier.STATIC) {
+                continue
+            }
             val methodName = method.name
             if (methodName.startsWith("get") && methodName.length > 3 && method.parameterCount == 0) {
                 val propertyName = methodName.substring(3).replaceFirstChar { it.lowercase(Locale.getDefault()) }
@@ -48,7 +52,7 @@ internal object InternalUtil {
         }
 
         for ((propertyName, getter) in getters) {
-            if(getter.name == "declaringClass" || getter.name == "class"){
+            if (getter.name == "declaringClass" || getter.name == "class") {
                 continue
             }
             val propertyDescriptor = PropertyDescriptor()
@@ -61,42 +65,42 @@ internal object InternalUtil {
         return propertyDescriptors.toTypedArray()
     }
 
-    fun getElementClass(type:Type):Class<*>?{
+    fun getElementClass(type: Type): Class<*>? {
         if (type is ParameterizedType) {
             val rawType = type.actualTypeArguments[0]
-            if(rawType !is Class<*>){
+            if (rawType !is Class<*>) {
                 return null
             }
             return rawType
         }
-        if(type is Class<*>){
-            if(type.isArray){
+        if (type is Class<*>) {
+            if (type.isArray) {
                 return type.componentType
             }
         }
         return null
     }
 
-    fun getOuterClass(type:Type):Class<*>?{
+    fun getOuterClass(type: Type): Class<*>? {
         if (type is ParameterizedType) {
             val rawType = type.rawType
-            if(rawType !is Class<*>){
+            if (rawType !is Class<*>) {
                 return null
             }
             return rawType
         }
-        if(type is Class<*>){
+        if (type is Class<*>) {
             return type
         }
         return null
     }
 
-    fun getPrimitiveClass(clazz: Class<*>): Class<*>?{
-        if(clazz.isPrimitive){
+    fun getPrimitiveClass(clazz: Class<*>): Class<*>? {
+        if (clazz.isPrimitive) {
             return clazz
         }
         val field: Field? = clazz.getField("TYPE")
-        if(field==null){
+        if (field == null) {
             return null
         }
 
@@ -104,7 +108,7 @@ internal object InternalUtil {
             field.isAccessible = true
             if (Modifier.isStatic(field.modifiers)) {
                 val typeClass = field.get(null)
-                if(typeClass is Class<*>){
+                if (typeClass is Class<*>) {
                     return typeClass;
                 }
             }
@@ -116,19 +120,18 @@ internal object InternalUtil {
     /**
      * 获取常见集合的带初始容量的构造方法 必须保证传入的不是抽象类或者接口
      */
-    fun findCollectionConstructor(type:Class<*>): (Int)->Any {
-        if(type == ArrayList::class.java){
-            return {  java.util.ArrayList<Any>(it) }
-        }else  if(type == LinkedList::class.java){
-            return {  java.util.LinkedList<Any>() }
-        }else  if(type == HashMap::class.java){
-            return {  java.util.HashMap<Any,Any>(it) }
-        }
-        else  if(type == HashSet::class.java){
-            return {  java.util.HashSet<Any>(it) }
+    fun findCollectionConstructor(type: Class<*>): (Int) -> Any {
+        if (type == ArrayList::class.java) {
+            return { java.util.ArrayList<Any>(it) }
+        } else if (type == LinkedList::class.java) {
+            return { java.util.LinkedList<Any>() }
+        } else if (type == HashMap::class.java) {
+            return { java.util.HashMap<Any, Any>(it) }
+        } else if (type == HashSet::class.java) {
+            return { java.util.HashSet<Any>(it) }
         }
         val noArgsConstructor = type.getConstructor()
-        return {noArgsConstructor.newInstance()}
+        return { noArgsConstructor.newInstance() }
     }
 }
 
