@@ -330,87 +330,83 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     //此时栈顶就是目标元素了
                     if (needUseDefaultValue()) {
                         tryGetDefaultValue()
-                        //执行setter
-                        codeEmitter.invoke(writeMethodInfo)
-                    } else {
-                        invokeWriter()
                     }
+                    //执行setter
+                    invokeWriter()
                 }
 
-            } else {
-
-                if (signature == COPY_NONNULL_DESCRIPTOR) {
-                    if (TypeUtils.isPrimitive(getterReturnType)) {
-                        //primitive时不考虑default value
-                        if (!useConverter) {
-                            doSwap()
-                        } else {
-                            codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
-                            invokeReadAndConvert()
-                            //由于是primitive 所以不用考虑null convert应当返回非null值
-                            codeEmitter.invoke(writeMethodInfo)
-                        }
+            } else if (signature == COPY_NONNULL_DESCRIPTOR) {
+                if (TypeUtils.isPrimitive(getterReturnType)) {
+                    //primitive时不考虑default value
+                    if (!useConverter) {
+                        doSwap()
                     } else {
                         codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
-
-                        if (useConverter) {
-                            invokeReadAndConvert()
-                        } else {
-                            invokeReader()
-                        }
-                        if (needUseDefaultValue()) {
-                            tryGetDefaultValue()
-                        }
-                        //复制栈顶元素用于执行if指令
-                        codeEmitter.dupForType(setterArgType)
-                        val skip = codeEmitter.make_label()
-                        val end = codeEmitter.make_label()
-
-                        //如果为null则清理栈 否则执行setter 然后跳转到end
-                        codeEmitter.ifnull(skip)
-                        codeEmitter.invoke(writeMethodInfo)
-                        codeEmitter.visitJumpInsn(Opcodes.GOTO, end)
-                        codeEmitter.visitLabel(skip)
-                        //此时不执行setter 要把栈中的target和currentValue扔掉
-                        codeEmitter.popForType(setterArgType)//扔掉currentValue
-                        codeEmitter.pop()//扔掉target
-                        codeEmitter.visitLabel(end)
-                    }
-
-                } else if (signature == MERGE_DESCRIPTOR) {
-                    if (TypeUtils.isPrimitive(setterArgType)) {
-                        continue
-                    } else {
-                        codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
-
-                        if (useConverter) {
-                            invokeReadAndConvert()
-                        } else {
-                            invokeReader()
-                        }
-                        if (needUseDefaultValue()) {
-                            tryGetDefaultValue()
-                        }
-
-                        ///此时栈元素为[target,currentValue]///
-
-                        //读取target中的属性值 这个值执行完if后就没用了 不需要dup
-                        codeEmitter.load_local(targetLocal)
-                        codeEmitter.invoke(targetGetterMethodInfo)
-                        val skip = codeEmitter.make_label()
-                        val end = codeEmitter.make_label()
-
-                        //如果为null则执行setter 否则清理栈 然后跳转到end
-                        codeEmitter.ifnonnull(skip)
-                        ///此时栈元素为[target,currentValue]///
+                        invokeReadAndConvert()
+                        //由于是primitive 所以不用考虑null convert应当返回非null值
                         invokeWriter()
-                        codeEmitter.visitJumpInsn(Opcodes.GOTO, end)
-                        codeEmitter.visitLabel(skip)
-                        codeEmitter.popForType(setterArgType)//扔掉currentValue
-                        codeEmitter.pop()//扔掉target
-                        codeEmitter.visitLabel(end)
-
                     }
+                } else {
+                    codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
+
+                    if (useConverter) {
+                        invokeReadAndConvert()
+                    } else {
+                        invokeReader()
+                    }
+                    if (needUseDefaultValue()) {
+                        tryGetDefaultValue()
+                    }
+                    //复制栈顶元素用于执行if指令
+                    codeEmitter.dupForType(setterArgType)
+                    val skip = codeEmitter.make_label()
+                    val end = codeEmitter.make_label()
+
+                    //如果为null则清理栈 否则执行setter 然后跳转到end
+                    codeEmitter.ifnull(skip)
+                    invokeWriter()
+                    codeEmitter.visitJumpInsn(Opcodes.GOTO, end)
+                    codeEmitter.visitLabel(skip)
+                    //此时不执行setter 要把栈中的target和currentValue扔掉
+                    codeEmitter.popForType(setterArgType)//扔掉currentValue
+                    codeEmitter.pop()//扔掉target
+                    codeEmitter.visitLabel(end)
+                }
+
+            } else if (signature == MERGE_DESCRIPTOR) {
+                if (TypeUtils.isPrimitive(setterArgType)) {
+                    continue
+                } else {
+                    codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
+
+                    if (useConverter) {
+                        invokeReadAndConvert()
+                    } else {
+                        invokeReader()
+                    }
+                    if (needUseDefaultValue()) {
+                        tryGetDefaultValue()
+                    }
+
+                    ///此时栈元素为[target,currentValue]///
+
+                    //读取target中的属性值 这个值执行完if后就没用了 不需要dup
+                    codeEmitter.load_local(targetLocal)
+                    codeEmitter.invoke(targetGetterMethodInfo)
+                    val skip = codeEmitter.make_label()
+                    val end = codeEmitter.make_label()
+
+                    //如果为null则执行setter 否则清理栈 然后跳转到end
+                    codeEmitter.ifnonnull(skip)
+                    ///此时栈元素为[target,currentValue]///
+                    invokeWriter()
+                    codeEmitter.visitJumpInsn(Opcodes.GOTO, end)
+                    codeEmitter.visitLabel(skip)
+                    codeEmitter.popForType(setterArgType)//扔掉currentValue
+                    codeEmitter.pop()//扔掉target
+                    codeEmitter.visitLabel(end)
+
+
                 }
             }
 
