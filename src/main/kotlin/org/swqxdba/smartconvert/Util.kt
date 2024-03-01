@@ -2,22 +2,20 @@ package org.swqxdba.smartconvert
 
 
 import java.beans.BeanInfo
-
 import java.beans.Introspector
-import java.beans.PropertyDescriptor
+
+
 import java.lang.RuntimeException
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
-import java.util.LinkedList
+import java.lang.reflect.*
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 internal object InternalUtil {
     fun getPropertyDescriptorMap(clazz: Class<*>): Map<String, PropertyDescriptor> {
-        val beanInfo = Introspector.getBeanInfo(clazz) ?: return emptyMap()
-
-        val propertyDescriptors = beanInfo.propertyDescriptors
+        val propertyDescriptors = getPropertyDescriptors(clazz)
         val map: MutableMap<String, PropertyDescriptor> = mutableMapOf()
         for (element in propertyDescriptors) {
             map[element.name] = element
@@ -28,11 +26,39 @@ internal object InternalUtil {
     fun getPropertyDescriptor(clazz: Class<*>, name: String): PropertyDescriptor? {
         return getPropertyDescriptorMap(clazz)[name]
     }
+    fun getPropertyDescriptors(clazz: Class<*>): Array<PropertyDescriptor> {
+        val propertyDescriptors = mutableListOf<PropertyDescriptor>()
 
+        val methods = clazz.methods
+        val getters = mutableMapOf<String, Method>()
+        val setters = mutableMapOf<String, Method>()
 
-    fun getPropertyDescriptors(clazz: Class<*>?): Array<PropertyDescriptor> {
-        val beanInfo: BeanInfo = Introspector.getBeanInfo(clazz)
-        return beanInfo.propertyDescriptors.filter { it.name!="class" }.toTypedArray()
+        for (method in methods) {
+            val methodName = method.name
+            if (methodName.startsWith("get") && methodName.length > 3 && method.parameterCount == 0) {
+                val propertyName = methodName.substring(3).replaceFirstChar { it.lowercase(Locale.getDefault()) }
+                getters[propertyName] = method
+            } else if (methodName.startsWith("is") && methodName.length > 2 && method.parameterCount == 0) {
+                val propertyName = methodName.substring(2).replaceFirstChar { it.lowercase(Locale.getDefault()) }
+                getters[propertyName] = method
+            } else if (methodName.startsWith("set") && methodName.length > 3 && method.parameterCount == 1) {
+                val propertyName = methodName.substring(3).replaceFirstChar { it.lowercase(Locale.getDefault()) }
+                setters[propertyName] = method
+            }
+        }
+
+        for ((propertyName, getter) in getters) {
+            if(getter.name == "declaringClass" || getter.name == "class"){
+                continue
+            }
+            val propertyDescriptor = PropertyDescriptor()
+            propertyDescriptor.name = propertyName
+            propertyDescriptor.readMethod = getter
+            propertyDescriptor.writeMethod = setters[propertyName]
+            propertyDescriptors.add(propertyDescriptor)
+        }
+
+        return propertyDescriptors.toTypedArray()
     }
 
     fun getElementClass(type:Type):Class<*>?{

@@ -15,7 +15,42 @@ class TestPojoProperty {
         var stringArray: Array<String> = arrayOf(),
         var commonList: List<*>? = null,
         var genericList: List<String>? = null
-    )
+
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Data
+
+            if (str != other.str) return false
+            if (primitiveInt != other.primitiveInt) return false
+            if (wrapInt != other.wrapInt) return false
+            if (wrapLong != other.wrapLong) return false
+            if (primitiveLong != other.primitiveLong) return false
+            if (!intArray.contentEquals(other.intArray)) return false
+            if (!wrapIntArray.contentDeepEquals(other.wrapIntArray)) return false
+            if (!stringArray.contentEquals(other.stringArray)) return false
+            if (commonList != other.commonList) return false
+            if (genericList != other.genericList) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = str?.hashCode() ?: 0
+            result = 31 * result + primitiveInt
+            result = 31 * result + (wrapInt ?: 0)
+            result = 31 * result + (wrapLong?.hashCode() ?: 0)
+            result = 31 * result + primitiveLong.hashCode()
+            result = 31 * result + intArray.contentHashCode()
+            result = 31 * result + wrapIntArray.contentDeepHashCode()
+            result = 31 * result + stringArray.contentHashCode()
+            result = 31 * result + (commonList?.hashCode() ?: 0)
+            result = 31 * result + (genericList?.hashCode() ?: 0)
+            return result
+        }
+    }
 
     val data = Data(
         "str",

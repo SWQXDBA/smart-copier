@@ -58,13 +58,13 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         val targetGetterMethodMap = mutableMapOf<Method, Method>()
         //获取bean属性
         for (targetProperty in targetProperties) {
-            val writeMethod = targetProperty.getWriteMethod() ?: continue
+            val writeMethod = targetProperty.writeMethod ?: continue
 
             val sourceProperty = InternalUtil.getPropertyDescriptor(sourceClass, targetProperty.name) ?: continue
-            val readMethod = sourceProperty.getReadMethod() ?: continue
+            val readMethod = sourceProperty.readMethod ?: continue
             mapper[readMethod] = writeMethod
 
-            val targetGetterMethod = targetProperty.getReadMethod() ?: continue
+            val targetGetterMethod = targetProperty.readMethod ?: continue
             targetGetterMethodMap[writeMethod] = targetGetterMethod
         }
         //根据设置调整字段映射
