@@ -57,6 +57,7 @@ object SmartCopier {
     var debugOutputStream: OutputStream? = null
 
     @JvmOverloads
+    @JvmStatic
     fun getCopier(sourceClass: Class<*>, targetClass: Class<*>, config: CopyConfig? = null): Copier {
         val hash = "" + sourceClass.hashCode() + targetClass.hashCode() + config.hashCode()
 
