@@ -15,28 +15,9 @@ object SmartCopier {
     @JvmStatic
     var beanConvertProvider: BeanConvertProvider? = null
 
-    private val cache = ConcurrentHashMap<String, Copier>()
+    private val cache = HashMap<String, Copier>()
 
-    /**
-     * 二级缓存 用于避免递归导致的溢出
-     */
-    private val copierGeneratorContext = object {
-        var deep = 0
-        var innerCache = mutableMapOf<String, Copier>()
-
-        @Synchronized
-        fun with(block: (MutableMap<String, Copier>) -> Copier): Copier {
-            try {
-                deep++
-                return block(innerCache)
-            } finally {
-                deep--
-                if (deep == 0) {
-                    innerCache.clear()
-                }
-            }
-        }
-    }
+    private val localCache: ThreadLocal<MutableMap<String, Copier>> = ThreadLocal.withInitial { mutableMapOf() }
 
     /**
      * 是否开启debug模式
@@ -60,19 +41,23 @@ object SmartCopier {
     @JvmStatic
     fun getCopier(sourceClass: Class<*>, targetClass: Class<*>, config: CopyConfig? = null): Copier {
         val hash = "" + sourceClass.hashCode() + targetClass.hashCode() + config.hashCode()
-
-        return cache.computeIfAbsent(hash) {
-            copierGeneratorContext.with { innerMap ->
-                //避免栈溢出
-                val existCopier = innerMap[hash]
-                if (existCopier != null) {
-                    return@with existCopier
-                }
-                val proxyCopier = ProxyCopier()
-                innerMap[hash] = proxyCopier
-                proxyCopier.copier = CopierGenerator(sourceClass, targetClass, config).generateCopier()
-                return@with proxyCopier
+        val localCache = localCache.get()
+        val localCopier = localCache[hash]
+        if (localCopier != null) {
+            return localCopier
+        }
+        synchronized(cache) {
+            val copier = cache[hash]
+            if (copier != null) {
+                localCache[hash] = copier
+                return copier
             }
+            //二级缓存 用于避免递归导致的溢出
+            val proxyCopier = ProxyCopier()
+            localCache[hash] = proxyCopier
+            cache[hash] = proxyCopier
+            proxyCopier.copier = CopierGenerator(sourceClass, targetClass, config).generateCopier()
+            return proxyCopier
         }
 
     }
