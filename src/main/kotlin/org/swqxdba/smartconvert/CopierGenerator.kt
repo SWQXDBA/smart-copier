@@ -254,13 +254,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             }
 
 
-            val doSwap = {
-                //复制source 和 target 然后调用方法
-                codeEmitter.load_local(targetLocal)//target
-                codeEmitter.load_local(sourceLocal)//source
-                codeEmitter.invoke(readMethodInfo)
-                codeEmitter.invoke(writeMethodInfo)
-            }
+
             //不消耗栈元素 读取source的属性值
             val invokeReader = {
                 codeEmitter.load_local(sourceLocal)
@@ -269,6 +263,17 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             //要求栈为[target,currentValue(栈顶)]
             val invokeWriter = {
                 codeEmitter.invoke(writeMethodInfo)
+                //对于链式调用的setter方法会返回this 要把它扔掉
+                if (writer.returnType !== Void.TYPE) {
+                    codeEmitter.pop()
+                }
+            }
+            val doSwap = {
+                //复制source 和 target 然后调用方法
+                codeEmitter.load_local(targetLocal)//target
+                codeEmitter.load_local(sourceLocal)//source
+                codeEmitter.invoke(readMethodInfo)
+                invokeWriter()
             }
             //不消耗栈元素 生成一个转换后的值
             val invokeReadAndConvert = {
