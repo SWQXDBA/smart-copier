@@ -53,7 +53,7 @@ class IterWrapper(type: Type) {
                val len =  java.lang.reflect.Array.getLength(arr)
 
                 val list = mutableListOf<Any>()
-                for (i in 0..<len) {
+                for (i in 0 until len) {
                     list.add(java.lang.reflect.Array.get(arr,i))
                 }
                 list
