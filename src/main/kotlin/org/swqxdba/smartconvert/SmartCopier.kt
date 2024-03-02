@@ -74,7 +74,7 @@ object SmartCopier {
 
     @JvmStatic
     @JvmOverloads
-    fun <T> copyToList(src: Iterable<*>?, targetClass: Class<T>, config: CopyConfig? = CopyConfig()): MutableList<T> {
+    fun <T> copyToList(src: Iterable<*>?, targetClass: Class<T>, config: CopyConfig? = null): MutableList<T> {
         if (src == null) {
             return mutableListOf()
         }
