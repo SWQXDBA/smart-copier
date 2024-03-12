@@ -41,6 +41,45 @@ public interface Copier {
 
 
 ```
+# 快速使用
+## 1 引入依赖:  
+maven 
+```
+<dependency>
+    <groupId>io.github.swqxdba</groupId>
+    <artifactId>smart-copier</artifactId>
+    <version>0.0.1</version>
+</dependency>
+```
+
+## 2 使用
+```java
+import org.swqxdba.smartconvert.SmartCopier;
+
+@Data
+class Person {
+
+    private String name;
+
+    private int age;
+}
+
+@Data
+class PersonDto {
+
+    private String name;
+
+    private int age;
+}
+
+public static void main(String[] args) {
+    PersonDto personDto ; //...
+    Person person ; //...
+    SmartCopier.copy(person,personDto);
+}
+```
+# 方法介绍
+
 
 ## copy
 copy方法会用src中的属性给target中的属性直接赋值
@@ -52,8 +91,8 @@ copy方法会用src中的属性给target中的属性直接赋值
 用当target中的属性为null时，才用src中的属性进行赋值。可以理解为合并对象
 
 
-# 设置类(CopyConfig)
-设置类用来在生成Copier实例时，对生成代码的逻辑进行定制。  
+# 配置类(CopyConfig)
+配置类用来在生成Copier实例时，对生成代码的逻辑进行定制。  
 
 注意：CopyConfig对象一旦被用于生成Copier实例，其可能不会被回收，请不要每次都创建新的CopyConfig！！！
 
@@ -184,10 +223,26 @@ currentMapper的value是目标属性的setter方法。
 
 > PropertyMapperRuleCustomizer只会在Copier实例生成时被调用，后续拷贝中属性的对应关系是确定的，不会有额外开销。  
 
-#  集合/数组容器处理
-在默认的CopierConfig中 有一个叫ContainerAdaptor的PropertyValueConverter 用于转换集合/数组类型的属性.  
+#  集合/数组容器的智能兼容处理
+在探测属性时 有时候会遇到带泛型的集合，比如:
+```java
+class Person{
+    List<Order> orders1;
+    List<Order> orders2;
+}
+class PersonDto{
+    Set<OrderDto> orders;
+    List<OrderDto> orders2;
+}
 
-支持对集合和数组进行处理，前提是元素类型必须兼容   
+```
+对于上述两个类型中的orders orders2属性，其中的集合类型或许不同，也或者集合类型兼容，但是集合元素类型不同。  
+
+SmartCopier在遇到集合属性时 会探测集合的具体泛型，避免造成堆污染。简而言之：当集合中元素类型兼容时，将直接拷贝集合元素，
+当集合类型不兼容时，将会尝试对其中的每个元素进行转换。  
+这个自动的转换逻辑请见后面的BeanConvertProvider配置。  
+
+此外，SmartCopier 支持对集合和数组进行处理，前提是元素类型必须兼容   
 (判断方式为class1.isAssignableFrom(class2))  
 
 比如 可以将List&lt;String&gt;转换到  
@@ -197,7 +252,7 @@ String[]
 
 
 如果目标容器类型(setter方法参数类型)为具体的实现类 而不是接口 (比如是LinkedList而不是List),  
-那么会尝试使用实现类的newInstance(size)构造方法 (反射调用一个参数为int类型的构造函数 参数为源集合元素数量)
+那么会尝试使用实现类的newInstance去直接构造实现类。
 
 如果目标容器类型为接口或者抽象类型，但是能被赋值为ArrayList 或者HashSet 则会被赋值为ArrayList或者HashSet
 
@@ -205,13 +260,15 @@ String[]
 比如 int[] 转换到 List&lt;Integer&gt; 或者Integer[]
 
 
-不支持的转换: (不支持转换时 该属性会被忽略)
+### 不支持的转换: (不支持转换时 该属性会被忽略)
 
 List&lt;UserEntity&gt; 到List&lt;UserDto&gt; 因为元素类型不兼容,
-且不知道如何进行元素的转换(如果强行赋值会造成堆污染)  
-如果有这种需求 可以手动调用SmartCopier.copyToList来进行额外的处理.  
+且不知道如何进行元素的转换(如果强行赋值会造成堆污染) ，如果想支持 可以通过配置BeanConvertProvider
+
+### 注意： 
 如果目标类型为primitive的数组 但是来源元素中有null 那么目标数组中的对应元素会是默认的初始值 比如:
 [null,123]->[0,123]
+
 # debug模式
 如果想查看生成的copy方法的方法源码，或者是生成的class字节码:
 ```
@@ -267,6 +324,111 @@ SmartCopier本身是线程安全的,包括生成Copier类的过程，以及执�
 ## 内存泄漏注意
 被传入SmartCopier的CopyConfig对象在程序生命周期中都不会被回收
 
-### 处理不兼容的类型
+# 处理不兼容的类型 beanConvertProvider
+
+在属性的拷贝和转换时，SmartCopier默认能够处理那些兼容的类型，但是有时候我们需要对不兼容的类型进行拷贝操作，见以下例子:
+```java
+class User{}
+class UserDto{}
+class Order{
+    private User user;
+}
+class OrderDto{
+    private UserDto user;
+}
+```
+此时我们想对Order和OrderDto进行拷贝，但是由于User和UserDto不兼容，所以默认情况下是不会进行拷贝的。  
+
+
+一个简单的想法是：如果遇到项目中定义的类 则当做bean处理，自动调用SmartCopier来拷贝一个副本。
+
 请使用SmartCopier.beanConvertProvider来设置全局的转换器，比如将一个bean转换成另一个bean等等。  
 或者进行map 和 bean之间的转换。
+
+以下是一个简单的配置示例，用于将在这个过程中对遇到的com.xxx包中的类进行自动转换：  
+```java
+
+SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
+            Map<String, BeanConverter> cache = new ConcurrentHashMap<>();
+
+            @Nullable
+            @Override
+            public BeanConverter tryGetConverter(@NotNull Class<?> aClass, @NotNull Class<?> aClass1) {
+                String key = aClass.getName() + aClass1.getName();
+                String basePackage = "com.xxx";//这里写你的项目的包名
+                BeanConverter beanConverter = cache.get(key);
+                if (beanConverter != null) {
+                    return beanConverter;
+                }
+                if (aClass.getPackage().getName().startsWith(basePackage) && aClass1.getPackage().getName().startsWith(basePackage)) {
+
+                    return cache.computeIfAbsent(key, k -> new BeanConverter() {
+                        final Copier copier = SmartCopier.getCopier(aClass, aClass1);
+
+                        final Constructor<?> targetConstructor;
+
+                        {
+                            try {
+                                targetConstructor = aClass1.getConstructor();
+                                targetConstructor.setAccessible(true);
+                            } catch (NoSuchMethodException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                        }
+
+                        @NotNull
+                        @Override
+                        public Object doConvert(@NotNull Object o) {
+                            try {
+                                Object instance = targetConstructor.newInstance();
+                                copier.copy(o, instance);
+                                return instance;
+                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    });
+                }
+                return null;
+            }
+        });
+
+```
+BeanConvertProvider中的tryGetConverter方法用于探测能否找到对应的转换器，如果返回null 则表示无法进行转换。   
+这个探测只会在生成具体的Copier类的时候被调用，不会在每次copy调用的时候被调用，因此不做缓存也可以。  
+
+## 处理Map到普通对象的转换
+同上个例子
+```java
+class User{}
+class UserDto{}
+class Order{
+    private Map user;
+}
+class OrderDto{
+    private UserDto user;
+}
+```
+假设你想将遇到的Map转换到bean 或者反过来，也只需要在SmartCopier.setBeanConvertProvider提供的BeanConvertProvider中支持即可。
+
+## 递归调用
+在定义beanConvertProvider时 我们可能会遇到递归的结构
+```java
+class Person{
+    Person p1;
+
+}
+class PersonDto{
+    PersonDto p1;
+}
+```
+对于上述结构 当尝试将Person转换到PersonDto时 发现需要生成Person->PersonDto的copier  
+
+在生成Person->PersonDto的copier时 由于属性类型p1不兼容，调用了设置的beanConvertProvider。  
+
+接下来 beanConvertProvider中尝试生成一个为p1属性进行转换的Copier 这个Copier也是Person->PersonDto。  
+
+因此，在上述场景中，会在生成Copier的过程中需要生成相同功能的另一个Copier，造成死递归。  
+
+请放心，上述问题不会发生，SmartCopier使用了一个简单的二级缓存来解决这个问题，您可以放心地在生成Copier的过程中，通过beanConvertProvider去生成另一个Copier。  
