@@ -7,7 +7,7 @@
     <description>A util to convert Objects</description>
     <groupId>io.github.swqxdba</groupId>
     <artifactId>smart-copier</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <url>https://github.com/SWQXDBA/smart-convert/tree/master</url>
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -40,13 +40,13 @@
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
             <version>1.6.4</version>
-            <!--            <scope>test</scope>-->
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core-jvm</artifactId>
             <version>1.6.4</version>
-            <!--            <scope>test</scope>-->
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
