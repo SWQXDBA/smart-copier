@@ -1,12 +1,13 @@
-package org.swqxdba.smartconvert;
+package org.swqxdba.smartconvert
 
-public interface Copier {
+
+interface Copier {
     /**
      * 强制对发现的所有属性进行拷贝
      * @param src
      * @param target
      */
-    void copy(Object src,Object target);
+    fun copy(src: Any?, target: Any?)
 
     /**
      * 当源属性不为null时进行拷贝
@@ -15,7 +16,7 @@ public interface Copier {
      * @param src
      * @param target
      */
-    void copyNonNullProperties(Object src,Object target);
+    fun copyNonNullProperties(src: Any?, target: Any?)
 
     /**
      * 合并两个对象，只对目标对象中为null的属性会被更新
@@ -23,5 +24,6 @@ public interface Copier {
      * @param src
      * @param target
      */
-    void merge(Object src,Object target);
+    fun merge(src: Any?, target: Any?)
 }
+

@@ -7,7 +7,7 @@
     <description>A util to convert Objects</description>
     <groupId>io.github.swqxdba</groupId>
     <artifactId>smart-copier</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.4</version>
     <url>https://github.com/SWQXDBA/smart-convert/tree/master</url>
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -115,9 +115,10 @@
                                 <id>attach-sources</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <goal>jar-no-fork</goal>
+                                    <goal>jar</goal>
                                 </goals>
                             </execution>
+
                         </executions>
                     </plugin>
                     <!-- Javadoc -->
@@ -167,6 +168,7 @@
         </profile>
     </profiles>
     <build>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -187,7 +189,8 @@
                         </goals>
                         <configuration>
                             <sourceDirs>
-                                <source>src/main/kotlin</source>
+                                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+                                <sourceDir>${project.basedir}/src/main/java</sourceDir>
                                 <source>target/generated-sources</source>
                             </sourceDirs>
                         </configuration>

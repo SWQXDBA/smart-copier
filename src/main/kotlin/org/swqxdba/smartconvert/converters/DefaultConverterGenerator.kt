@@ -19,6 +19,10 @@ class DefaultConverterGenerator {
         ): PropertyValueConverter? {
             val setterType = targetSetter.genericParameterTypes[0]
             val getterType = sourceGetter.genericReturnType
+            // 相同类型不执行转换。
+            if(setterType==getterType){
+                return null
+            }
             if (IterWrapper.canWrap(setterType) && IterWrapper.canWrap(getterType)) {
                 val containerAdaptor = ContainerAdaptor()
 
@@ -37,6 +41,7 @@ class DefaultConverterGenerator {
             }
             val returnClassType = sourceGetter.returnType
             val setterClassType = targetSetter.parameterTypes[0]
+
             val beanConverter = SmartCopier.beanConvertProvider?.tryGetConverter(
                 returnClassType,
                 setterClassType
@@ -44,13 +49,13 @@ class DefaultConverterGenerator {
             if(beanConverter!=null){
                 return object :PropertyValueConverter{
                     override fun shouldIntercept(
-                        sourceGetter2: Method,
-                        targetSetter2: Method,
-                        sourceClass2: Class<*>,
-                        targetClass2: Class<*>,
-                        copyMethodType2: CopyMethodType
+                        sourceGetter: Method,
+                        targetSetter: Method,
+                        sourceClass: Class<*>,
+                        targetClass: Class<*>,
+                        copyMethodType: CopyMethodType
                     ): Boolean {
-                        return sourceGetter2.returnType==returnClassType && targetSetter2.parameterTypes[0]==setterClassType
+                        return sourceGetter.returnType==returnClassType && targetSetter.parameterTypes[0]==setterClassType
                     }
 
                     override fun convert(oldValue: Any?): Any? {
