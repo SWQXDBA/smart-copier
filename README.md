@@ -308,7 +308,7 @@ class ProductConverter {
 import org.swqxdba.smartconvert.SmartCopier;
 
 class ProductConverter {
-    Copier copier = SmartCopier.INSTANCE.getCopier(ProductDto.class,Product.class);
+    Copier copier = SmartCopier.getCopier(ProductDto.class,Product.class);
     public void copy(ProductDto dto, Product entity) {
         copier.copy(dto,entity);
     }
