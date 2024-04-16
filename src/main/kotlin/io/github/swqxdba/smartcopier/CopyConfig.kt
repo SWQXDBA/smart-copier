@@ -1,6 +1,5 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
-import org.swqxdba.smartconvert.container.ContainerAdaptor
 import java.lang.reflect.Method
 
 

@@ -1,9 +1,9 @@
-package org.swqxdba.smartconvert.container
+package io.github.swqxdba.smartcopier.container
 
-import org.swqxdba.smartconvert.CopyMethodType
-import org.swqxdba.smartconvert.InternalUtil
-import org.swqxdba.smartconvert.PropertyValueConverter
-import org.swqxdba.smartconvert.SmartCopier
+import io.github.swqxdba.smartcopier.CopyMethodType
+import io.github.swqxdba.smartcopier.InternalUtil
+import io.github.swqxdba.smartcopier.PropertyValueConverter
+import io.github.swqxdba.smartcopier.SmartCopier
 import java.lang.Exception
 import java.lang.reflect.Method
 

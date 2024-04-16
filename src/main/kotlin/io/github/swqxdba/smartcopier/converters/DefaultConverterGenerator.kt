@@ -1,11 +1,10 @@
-package org.swqxdba.smartconvert.converters
+package io.github.swqxdba.smartcopier.converters
 
-import org.swqxdba.smartconvert.CopyMethodType
-import org.swqxdba.smartconvert.InternalUtil
-import org.swqxdba.smartconvert.PropertyValueConverter
-import org.swqxdba.smartconvert.SmartCopier
-import org.swqxdba.smartconvert.container.ContainerAdaptor
-import org.swqxdba.smartconvert.container.IterWrapper
+import io.github.swqxdba.smartcopier.CopyMethodType
+import io.github.swqxdba.smartcopier.PropertyValueConverter
+import io.github.swqxdba.smartcopier.SmartCopier
+import io.github.swqxdba.smartcopier.container.ContainerAdaptor
+import io.github.swqxdba.smartcopier.container.IterWrapper
 import java.lang.reflect.Method
 
 class DefaultConverterGenerator {

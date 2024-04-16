@@ -1,7 +1,7 @@
 package test.demos;
 
 import lombok.Data;
-import org.swqxdba.smartconvert.SmartCopier;
+import io.github.swqxdba.smartcopier.SmartCopier;
 
 public class DemoJ {
 
@@ -32,6 +32,7 @@ public class DemoJ {
         SmartCopier.setDebugMode(true);
         SmartCopier.setDebugOutPutDir("./debug");
         copy(new HotelDto() ,new Hotel());
+
     }
     private static void copy(HotelDto from, Hotel to) {
         SmartCopier.copy(from, to);

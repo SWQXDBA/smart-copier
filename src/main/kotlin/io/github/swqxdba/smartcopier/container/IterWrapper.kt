@@ -1,7 +1,7 @@
-package org.swqxdba.smartconvert.container
+package io.github.swqxdba.smartcopier.container
 
-import org.swqxdba.smartconvert.InternalUtil
-import org.swqxdba.smartconvert.InternalUtil.findCollectionConstructor
+import io.github.swqxdba.smartcopier.InternalUtil
+import io.github.swqxdba.smartcopier.InternalUtil.findCollectionConstructor
 import java.lang.reflect.Modifier
 import java.lang.reflect.Type
 import java.math.BigDecimal

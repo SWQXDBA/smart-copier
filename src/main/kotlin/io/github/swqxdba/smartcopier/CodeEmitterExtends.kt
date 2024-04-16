@@ -1,4 +1,4 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
 import net.sf.cglib.core.CodeEmitter
 import org.objectweb.asm.Type

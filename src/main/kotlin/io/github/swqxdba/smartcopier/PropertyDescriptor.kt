@@ -1,4 +1,4 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
 import java.lang.reflect.Method
 

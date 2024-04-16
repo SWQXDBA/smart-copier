@@ -1,9 +1,7 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
-import org.swqxdba.smartconvert.SmartCopier.getCopier
-import org.swqxdba.smartconvert.bean.BeanConvertProvider
+import io.github.swqxdba.smartcopier.bean.BeanConvertProvider
 import java.io.OutputStream
-import java.util.concurrent.ConcurrentHashMap
 
 object SmartCopier {
 

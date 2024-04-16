@@ -2,7 +2,7 @@ package test
 
 import cn.hutool.core.bean.BeanUtil
 import org.junit.jupiter.api.Test
-import org.swqxdba.smartconvert.SmartCopier
+import io.github.swqxdba.smartcopier.SmartCopier
 
 class SpeedTest {
 

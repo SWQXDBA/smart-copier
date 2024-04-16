@@ -1,10 +1,10 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
 import net.sf.cglib.core.*
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
-import org.swqxdba.smartconvert.converters.DefaultConverterGenerator
+import io.github.swqxdba.smartcopier.converters.DefaultConverterGenerator
 import java.io.File
 import java.lang.reflect.Method
 import java.nio.file.Files

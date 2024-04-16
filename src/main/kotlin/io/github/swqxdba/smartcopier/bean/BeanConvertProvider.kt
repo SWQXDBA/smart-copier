@@ -1,4 +1,4 @@
-package org.swqxdba.smartconvert.bean
+package io.github.swqxdba.smartcopier.bean
 @FunctionalInterface
 interface BeanConvertProvider {
     /**

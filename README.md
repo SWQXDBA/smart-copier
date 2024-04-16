@@ -53,8 +53,9 @@ maven
 ```
 
 ## 2 使用
+
 ```java
-import org.swqxdba.smartconvert.SmartCopier;
+import io.github.swqxdba.smartcopier.SmartCopier;
 
 @Data
 class Person {
@@ -72,11 +73,11 @@ class PersonDto {
     private int age;
 }
 
-public static void main(String[] args) {
-    PersonDto personDto ; //...
-    Person person ; //...
-    SmartCopier.copy(person,personDto);
-}
+    public static void main(String[] args) {
+        PersonDto personDto; //...
+        Person person; //...
+        SmartCopier.copy(person, personDto);
+    }
 ```
 # 方法介绍
 
@@ -291,12 +292,14 @@ SmartCopier中有静态的copy方法可以调用,但是如果需要更高的性�
 避免每次调用静态方法时反复从读取缓存.
 
 性能较低的做法
+
 ```java
-import org.swqxdba.smartconvert.SmartCopier;
+import io.github.swqxdba.smartcopier.SmartCopier;
 
 class ProductConverter {
+
     public void copy(ProductDto dto, Product entity) {
-        SmartCopier.copy(dto,entity);
+        SmartCopier.copy(dto, entity);
     }
 }
 
@@ -305,12 +308,14 @@ class ProductConverter {
 更高性能的写法
 
 ```java
-import org.swqxdba.smartconvert.SmartCopier;
+import io.github.swqxdba.smartcopier.SmartCopier;
 
 class ProductConverter {
-    Copier copier = SmartCopier.getCopier(ProductDto.class,Product.class);
+
+    Copier copier = SmartCopier.getCopier(ProductDto.class, Product.class);
+
     public void copy(ProductDto dto, Product entity) {
-        copier.copy(dto,entity);
+        copier.copy(dto, entity);
     }
 }
 

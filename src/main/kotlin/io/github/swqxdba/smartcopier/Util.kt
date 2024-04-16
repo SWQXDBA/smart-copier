@@ -1,14 +1,8 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
 
-import java.beans.BeanInfo
-import java.beans.Introspector
-
-
-import java.lang.RuntimeException
 import java.lang.reflect.*
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet

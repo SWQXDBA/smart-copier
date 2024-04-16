@@ -1,4 +1,4 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
 
 interface Copier {

@@ -1,4 +1,4 @@
-package org.swqxdba.smartconvert
+package io.github.swqxdba.smartcopier
 
 class ProxyCopier : Copier {
     lateinit var copier: Copier

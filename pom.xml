@@ -7,8 +7,8 @@
     <description>A util to convert Objects</description>
     <groupId>io.github.swqxdba</groupId>
     <artifactId>smart-copier</artifactId>
-    <version>0.0.4</version>
-    <url>https://github.com/SWQXDBA/smart-convert/tree/master</url>
+    <version>0.0.5</version>
+    <url>https://github.com/SWQXDBA/smart-copier/tree/master</url>
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
@@ -29,9 +29,9 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git://github.com/SWQXDBA/smart-convert/</connection>
-        <developerConnection>scm:git:ssh://github.com:SWQXDBA/smart-convert.git</developerConnection>
-        <url>https://github.com/SWQXDBA/smart-convert/tree/master</url>
+        <connection>scm:git:git://github.com/SWQXDBA/smart-copier/</connection>
+        <developerConnection>scm:git:ssh://github.com:SWQXDBA/smart-copier.git</developerConnection>
+        <url>https://github.com/SWQXDBA/smart-copier/tree/master</url>
     </scm>
 
 
@@ -121,32 +121,30 @@
 
                         </executions>
                     </plugin>
-                    <!-- Javadoc -->
+                    <!--使用dokka生成 Javadoc -->
+<!--                    https://book.kotlincn.net/text/dokka-maven.html         -->
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.0.0</version>
-                        <configuration>
-                            <show>package</show>
-                            <tags>
-                                <tag>
-                                    <name>date</name>
-                                </tag>
-                            </tags>
-                        </configuration>
+                        <groupId>org.jetbrains.dokka</groupId>
+                        <artifactId>dokka-maven-plugin</artifactId>
+                        <version>1.7.20</version>
                         <executions>
+<!--                            <execution>-->
+<!--                                <phase>pre-site</phase>-->
+<!--                                <goals>-->
+<!--                                    <goal>dokka</goal>-->
+<!--                                </goals>-->
+<!--                            </execution>-->
+<!--                            -->
                             <execution>
-                                <id>attach-javadocs</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <goal>jar</goal>
+                                    <goal>javadocJar</goal>
                                 </goals>
-                                <configuration>
-                                    <doclint>none</doclint>
-                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
+
+
                     <!--                    签名插件-->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>

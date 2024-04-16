@@ -1,18 +1,14 @@
 package test.model;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.swqxdba.smartconvert.Copier;
-import org.swqxdba.smartconvert.SmartCopier;
-import org.swqxdba.smartconvert.bean.BeanConvertProvider;
-import org.swqxdba.smartconvert.bean.BeanConverter;
+import io.github.swqxdba.smartcopier.Copier;
+import io.github.swqxdba.smartcopier.SmartCopier;
+import io.github.swqxdba.smartcopier.bean.BeanConvertProvider;
+import io.github.swqxdba.smartcopier.bean.BeanConverter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class SpeedTestJ {

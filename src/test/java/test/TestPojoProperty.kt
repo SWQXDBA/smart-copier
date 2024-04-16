@@ -1,7 +1,7 @@
 package test
 
 import org.junit.jupiter.api.Test
-import org.swqxdba.smartconvert.*
+import io.github.swqxdba.smartcopier.*
 import java.lang.reflect.Method
 
 

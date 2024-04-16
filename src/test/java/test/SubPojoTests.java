@@ -5,9 +5,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.swqxdba.smartconvert.SmartCopier;
-import org.swqxdba.smartconvert.bean.BeanConvertProvider;
-import org.swqxdba.smartconvert.bean.BeanConverter;
+import io.github.swqxdba.smartcopier.SmartCopier;
+import io.github.swqxdba.smartcopier.bean.BeanConvertProvider;
+import io.github.swqxdba.smartcopier.bean.BeanConverter;
 
 public class SubPojoTests {
 

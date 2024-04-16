@@ -1,16 +1,12 @@
 package test.competitor;
 
-import org.swqxdba.smartconvert.Copier;
+import io.github.swqxdba.smartcopier.Copier;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class ReflectSlowCopier implements Copier {
 

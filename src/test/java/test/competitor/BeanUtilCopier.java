@@ -2,7 +2,7 @@ package test.competitor;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
-import org.swqxdba.smartconvert.Copier;
+import io.github.swqxdba.smartcopier.Copier;
 
 public class BeanUtilCopier implements Copier {
 

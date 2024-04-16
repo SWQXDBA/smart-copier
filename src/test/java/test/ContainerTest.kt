@@ -2,7 +2,7 @@ package test
 
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.swqxdba.smartconvert.SmartCopier
+import io.github.swqxdba.smartcopier.SmartCopier
 
 
 class ContainerTest {
