@@ -353,51 +353,60 @@ class OrderDto{
 以下是一个简单的配置示例，用于将在这个过程中对遇到的com.xxx包中的类进行自动转换：  
 ```java
 
-SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
-            Map<String, BeanConverter> cache = new ConcurrentHashMap<>();
+    SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
+        Map<String, BeanConverter> cache = new ConcurrentHashMap<>();
 
-            @Nullable
-            @Override
-            public BeanConverter tryGetConverter(@NotNull Class<?> aClass, @NotNull Class<?> aClass1) {
-                String key = aClass.getName() + aClass1.getName();
-                String basePackage = "com.xxx";//这里写你的项目的包名
-                BeanConverter beanConverter = cache.get(key);
-                if (beanConverter != null) {
-                    return beanConverter;
-                }
-                if (aClass.getPackage().getName().startsWith(basePackage) && aClass1.getPackage().getName().startsWith(basePackage)) {
-
-                    return cache.computeIfAbsent(key, k -> new BeanConverter() {
-                        final Copier copier = SmartCopier.getCopier(aClass, aClass1);
-
-                        final Constructor<?> targetConstructor;
-
-                        {
-                            try {
-                                targetConstructor = aClass1.getConstructor();
-                                targetConstructor.setAccessible(true);
-                            } catch (NoSuchMethodException e) {
-                                throw new RuntimeException(e);
-                            }
-
-                        }
-
-                        @NotNull
-                        @Override
-                        public Object doConvert(@NotNull Object o) {
-                            try {
-                                Object instance = targetConstructor.newInstance();
-                                copier.copy(o, instance);
-                                return instance;
-                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
-                }
-                return null;
+        @Nullable
+        @Override
+        public BeanConverter tryGetConverter(@NotNull Class<?> aClass, @NotNull Class<?> aClass1) {
+            String key = aClass.getName() + aClass1.getName();
+            String basePackage = "com.ly";
+            BeanConverter beanConverter = cache.get(key);
+            if (beanConverter != null) {
+                return beanConverter;
             }
-        });
+            if (aClass.getPackage().getName().startsWith(basePackage) && aClass1.getPackage().getName().startsWith(basePackage)) {
+                return cache.computeIfAbsent(key, k -> new BeanConverter() {
+                    Copier copier;
+
+                    final Constructor<?> targetConstructor;
+
+                    {
+                        try {
+                            targetConstructor = aClass1.getConstructor();
+                            targetConstructor.setAccessible(true);
+                        } catch (NoSuchMethodException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    }
+
+                    @NotNull
+                    @Override
+                    public Object doConvert(@NotNull Object o) {
+                        Copier copier1 = copier;
+                        if (copier1 == null) {
+                            synchronized (this) {
+                                if (this.copier == null) {
+                                    this.copier = SmartCopier.getCopier(aClass, aClass1);
+                                }
+                            }
+                            copier1 = copier;
+                        }
+                        try {
+                            Object instance = targetConstructor.newInstance();
+                            copier1.copy(o, instance);
+                            return instance;
+                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+            }
+            return null;
+        }
+    });
+
 
 ```
 BeanConvertProvider中的tryGetConverter方法用于探测能否找到对应的转换器，如果返回null 则表示无法进行转换。   
