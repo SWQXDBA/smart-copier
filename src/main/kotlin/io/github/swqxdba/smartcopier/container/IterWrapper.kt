@@ -46,6 +46,7 @@ class IterWrapper(type: Type) {
 
 
         } else {
+
             if (!Collection::class.java.isAssignableFrom(containerClass)) {
                 throw RuntimeException("cannot resolve type $containerClass")
             }

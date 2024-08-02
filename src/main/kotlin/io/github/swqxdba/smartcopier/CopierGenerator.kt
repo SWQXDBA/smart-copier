@@ -1,17 +1,22 @@
 package io.github.swqxdba.smartcopier
 
+import io.github.swqxdba.smartcopier.InternalUtil.javaObjectClass
+import io.github.swqxdba.smartcopier.InternalUtil.smartCast
 import net.sf.cglib.core.*
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import io.github.swqxdba.smartcopier.converters.DefaultConverterGenerator
+import io.github.swqxdba.smartcopier.propertyreader.PropertyValueReader
 import java.io.File
 import java.lang.reflect.Method
 import java.nio.file.Files
 import java.nio.file.Paths
 
 
-internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val config: CopyConfig? = null) {
+internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val config0: CopyConfig? = null) {
+
+    var config: CopyConfig? = config0
 
     val generateContext = GenerateContext()
 
@@ -48,6 +53,9 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
     //调整属性映射
     init {
+        if (config == null) {
+            config = SmartCopier.defaultConfig
+        }
         CopyConfig.currentConfig.set(config)
         val targetProperties = InternalUtil.getPropertyDescriptors(targetClass)
 
@@ -248,44 +256,94 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             val useConverter = converterField != null
             //如果类型不兼容 且不适用converter 则忽略该属性
             if (!writer.parameterTypes[0].isAssignableFrom(reader.returnType)) {
-                if (!useConverter) {
-                    continue
+                //不允许自动拆包装 且不使用转换器
+                if(config?.allowPrimitiveWrapperAutoCast != true){
+                    if (!useConverter) {
+                        continue
+                    }
+
+
+                }else  if(javaObjectClass(writer.parameterTypes[0]) != javaObjectClass(reader.returnType)) {
+                    //允许拆包装 但拆包装不兼容 且不使用转换器
+                    if (!useConverter) {
+                        continue
+                    }
                 }
+
+
+
             }
 
+
+            //自定义reader方法
+            val customReader = config?.propertyValueReaderProvider?.tryGerReader(reader)
+            val customReaderFieldName = "custom_reader_${reader.name}"
+            if (customReader != null) {
+                ce.declare_field(
+                    Opcodes.ACC_PRIVATE,
+                    customReaderFieldName,
+                    Type.getType(PropertyValueReader::class.java),
+                    null
+                )
+                generateContext.addField(customReaderFieldName, customReader)
+            }
 
 
             //不消耗栈元素 读取source的属性值
             val invokeReader = {
-                codeEmitter.load_local(sourceLocal)
-                codeEmitter.invoke(readMethodInfo)
+                if (customReader != null) {
+                    codeEmitter.load_this()
+                    codeEmitter.getfield(customReaderFieldName)
+                    codeEmitter.load_local(sourceLocal)
+                    codeEmitter.invoke_interface(
+                        Type.getType(PropertyValueReader::class.java),
+                        Signature("readValue", Type.getType(Any::class.java), arrayOf(Type.getType(Any::class.java)))
+                    )
+                } else {
+                    codeEmitter.load_local(sourceLocal)
+                    codeEmitter.invoke(readMethodInfo)
+                }
             }
             //要求栈为[target,currentValue(栈顶)]
             val invokeWriter = {
+                //确保栈顶元素和writer的参数类型兼容
+                if (useConverter || defaultValue != null || customReader != null) {
+                    smartCast(Any::class.java, writer.parameterTypes[0], codeEmitter)
+                } else {
+                    smartCast(reader.returnType, writer.parameterTypes[0], codeEmitter)
+                }
+
                 codeEmitter.invoke(writeMethodInfo)
                 //对于链式调用的setter方法会返回this 要把它扔掉
                 if (writer.returnType !== Void.TYPE) {
                     codeEmitter.pop()
                 }
             }
-            val doSwap = {
-                //复制source 和 target 然后调用方法
-                codeEmitter.load_local(targetLocal)//target
-                codeEmitter.load_local(sourceLocal)//source
-                codeEmitter.invoke(readMethodInfo)
-                invokeWriter()
-            }
             //不消耗栈元素 生成一个转换后的值
             val invokeReadAndConvert = {
                 codeEmitter.load_this()
                 codeEmitter.getfield(converterField!!.name)
                 invokeReader()
+                //此时栈顶可能是primitive类型 此时无法作为converter的参数 要判断一下
+                //当使用customReader时 栈顶元素必然是非primitive类型 不用处理
+                //当不使用customReader时 栈顶元素可能是primitive类型 要强制转换一下
+                if (customReader == null) {
+                    smartCast(reader.returnType, Any::class.java, codeEmitter)
+                }
+
                 codeEmitter.invoke_interface(
                     Type.getType(PropertyValueConverter::class.java),
                     Signature("convert", Type.getType(Any::class.java), arrayOf(Type.getType(Any::class.java)))
                 )
-                //记得转换类型 因为convert返回的是Any
-                codeEmitter.checkcast(setterArgType)
+
+            }
+
+
+            val doSwap = {
+                //复制source 和 target 然后调用方法
+                codeEmitter.load_local(targetLocal)//target
+                invokeReader()
+                invokeWriter()
             }
 
             //是否使用默认值 如果不需要默认值提供者，或者默认值为null则直接赋值 如果是primitive则永远不用默认值 因为不会是null
@@ -294,6 +352,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                 //defaultValue不为null说明defaultValueProvider也不为null
                 defaultValue != null && !TypeUtils.isPrimitive(setterArgType)
             }
+
 
             //如果栈顶是null 则调用默认值提供者
             //要求调用时 栈为[target,currentValue(栈顶)]
@@ -319,6 +378,8 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
 
 
+
+
             if (signature == COPY_DESCRIPTOR) {
                 if (defaultValueProvider == null && !useConverter) {
                     doSwap()
@@ -341,17 +402,8 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                 }
 
             } else if (signature == COPY_NONNULL_DESCRIPTOR) {
-                if (TypeUtils.isPrimitive(getterReturnType)) {
-                    //primitive时不考虑default value
-                    if (!useConverter) {
-                        doSwap()
-                    } else {
-                        codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
-                        invokeReadAndConvert()
-                        //由于是primitive 所以不用考虑null convert应当返回非null值
-                        invokeWriter()
-                    }
-                } else {
+                //这三个条件同时满足时 可以确保栈顶是primitive类型 那么直接swap就行 否则要考虑一系列处理
+                if(useConverter || customReader!=null ||!TypeUtils.isPrimitive(getterReturnType)){
                     codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
 
                     if (useConverter) {
@@ -376,7 +428,11 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     codeEmitter.popForType(setterArgType)//扔掉currentValue
                     codeEmitter.pop()//扔掉target
                     codeEmitter.visitLabel(end)
+                }else {
+                    //primitive时不考虑default value
+                    doSwap()
                 }
+
 
             } else if (signature == MERGE_DESCRIPTOR) {
                 if (TypeUtils.isPrimitive(setterArgType)) {

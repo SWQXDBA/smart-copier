@@ -1,6 +1,8 @@
 package io.github.swqxdba.smartcopier
 
 
+import net.sf.cglib.core.CodeEmitter
+import net.sf.cglib.core.Signature
 import java.lang.reflect.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -128,6 +130,128 @@ internal object InternalUtil {
         }
         val noArgsConstructor = type.getConstructor()
         return { noArgsConstructor.newInstance() }
+    }
+
+    fun smartCast(fromType:Class<*>, toType:Class<*>, codeEmitter:CodeEmitter){
+        if(fromType==toType){
+            return
+        }
+        //两种均为基本类型 或者均为非基本类型 都直接转换
+        if(fromType.isPrimitive && toType.isPrimitive){
+            codeEmitter.checkcast(org.objectweb.asm.Type.getType(toType))
+            return
+        }
+        if(!fromType.isPrimitive && !toType.isPrimitive){
+            codeEmitter.checkcast(org.objectweb.asm.Type.getType(toType))
+            return
+        }
+
+        if(toType.isPrimitive){
+            if(fromType!=javaObjectClass(toType)){
+                codeEmitter.checkcast(org.objectweb.asm.Type.getType(javaObjectClass(toType)))
+            }
+
+            when(toType){
+                Int::class.java->{
+                    codeEmitter.invoke_virtual(
+                        org.objectweb.asm.Type.getType(java.lang.Integer::class.java),
+                        Signature("intValue", org.objectweb.asm.Type.getType(Int::class.java), arrayOf())
+                    )
+                }
+                Long::class.java->{
+                    codeEmitter.invoke_virtual(
+                        org.objectweb.asm.Type.getType(java.lang.Long::class.java),
+                        Signature("longValue", org.objectweb.asm.Type.getType(Long::class.java), arrayOf())
+                    )
+                }
+                Float::class.java->{
+                    codeEmitter.invoke_virtual(
+                        org.objectweb.asm.Type.getType(java.lang.Float::class.java),
+                        Signature("floatValue", org.objectweb.asm.Type.getType(Float::class.java), arrayOf())
+                    )
+                }
+                Double::class.java->{
+                    codeEmitter.invoke_virtual(
+                        org.objectweb.asm.Type.getType(java.lang.Double::class.java),
+                        Signature("doubleValue", org.objectweb.asm.Type.getType(Double::class.java), arrayOf())
+                    )
+                }
+                Byte::class.java->{
+                    codeEmitter.invoke_virtual(
+                        org.objectweb.asm.Type.getType(java.lang.Byte::class.java),
+                        Signature("byteValue", org.objectweb.asm.Type.getType(Byte::class.java),arrayOf())
+                    )
+                }
+                Short::class.java->{
+                    codeEmitter.invoke_virtual(
+                        org.objectweb.asm.Type.getType(java.lang.Short::class.java),
+                        Signature("shortValue", org.objectweb.asm.Type.getType(Short::class.java), arrayOf())
+                    )
+                }
+            }
+
+        }else{
+            when(fromType){
+                Int::class.javaPrimitiveType -> {
+                    codeEmitter.invoke_static(
+                        org.objectweb.asm.Type.getType(Int::class.javaObjectType),
+                        Signature("valueOf", org.objectweb.asm.Type.getType(Int::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Int::class.javaPrimitiveType)))
+                    )
+                    // Assuming we are boxing the primitive int to Integer
+                }
+                Long::class.javaPrimitiveType -> {
+                    codeEmitter.invoke_static(
+                        org.objectweb.asm.Type.getType(Long::class.javaObjectType),
+                        Signature("valueOf", org.objectweb.asm.Type.getType(Long::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Long::class.javaPrimitiveType)))
+                    )
+                }
+                Float::class.javaPrimitiveType -> {
+                    codeEmitter.invoke_static(
+                        org.objectweb.asm.Type.getType(Float::class.javaObjectType),
+                        Signature("valueOf", org.objectweb.asm.Type.getType(Float::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Float::class.javaPrimitiveType)))
+                    )
+                }
+                Double::class.javaPrimitiveType -> {
+                    codeEmitter.invoke_static(
+                        org.objectweb.asm.Type.getType(Double::class.javaObjectType),
+                        Signature("valueOf", org.objectweb.asm.Type.getType(Double::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Double::class.javaPrimitiveType)))
+                    )
+                }
+                Byte::class.javaPrimitiveType -> {
+                    codeEmitter.invoke_static(
+                        org.objectweb.asm.Type.getType(Byte::class.javaObjectType),
+                        Signature("valueOf", org.objectweb.asm.Type.getType(Byte::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Byte::class.javaPrimitiveType)))
+                    )
+                }
+                Short::class.javaPrimitiveType -> {
+                    codeEmitter.invoke_static(
+                        org.objectweb.asm.Type.getType(Short::class.javaObjectType),
+                        Signature("valueOf", org.objectweb.asm.Type.getType(Short::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Short::class.javaPrimitiveType)))
+                    )
+                }
+                Boolean::class.javaPrimitiveType -> {
+                    codeEmitter.invoke_static(
+                        org.objectweb.asm.Type.getType(Boolean::class.javaObjectType),
+                        Signature("valueOf", org.objectweb.asm.Type.getType(Boolean::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Boolean::class.javaPrimitiveType)))
+                    )
+                }
+            }
+
+        }
+    }
+    fun javaObjectClass(type:Class<*>):Class<*>{
+        return when (type.name) {
+            "boolean" -> java.lang.Boolean::class.java
+            "char"    -> Character::class.java
+            "byte"    -> java.lang.Byte::class.java
+            "short"   -> java.lang.Short::class.java
+            "int"     -> Integer::class.java
+            "float"   -> java.lang.Float::class.java
+            "long"    -> java.lang.Long::class.java
+            "double"  -> java.lang.Double::class.java
+            "void"    -> Void::class.java
+            else -> type
+        }
     }
 }
 

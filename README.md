@@ -178,18 +178,23 @@ interface PropertyMapperRuleCustomizer {
 
 /**
  * @param defaultValueProvider 默认值提供者
- * @param propertyValueConverter 属性值转换器
+ * @param propertyValueConverters 属性值转换器
  * @param propertyMapperRuleCustomizer 用于客制化属性的对应关系
+ * @param propertyValueReaderProvider 用于客制化属性的读取方式
+ * @param allowPrimitiveWrapperAutoCast 是否允许自动拆箱和装箱
  */
 class CopyConfig(
-    val defaultValueProvider: PropertyValueProvider? = null,
-    val propertyValueConverter: PropertyValueConverter? = null,
-    val propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
+    var defaultValueProvider: PropertyValueProvider? = null,
+    var propertyValueConverters: MutableList<PropertyValueConverter>? = null,
+    var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
+    var propertyValueReaderProvider: CustomPropertyReaderProvider? = null,
+    var allowPrimitiveWrapperAutoCast: Boolean = true
+
 )
 
 ```
 # CopyConfig
-CopyConfig提供了三个参数(函数式接口)，当不为null时生效。
+CopyConfig提供了五个参数(函数式接口)，当不为null时生效。
 
 # PropertyValueProvider
 
@@ -223,6 +228,32 @@ currentMapper的value是目标属性的setter方法。
 要求返回的新的map也应该遵循这个规则。并且保证getter返回值和setter参数的类型是兼容的。(比如不能把Integer赋值给String)
 
 > PropertyMapperRuleCustomizer只会在Copier实例生成时被调用，后续拷贝中属性的对应关系是确定的，不会有额外开销。  
+
+# PropertyValueReader
+属性值读取器  
+用于自定义如何读取属性的值  
+该功能可以替代默认值和转换器，并且可以与他们同时使用。但是理论上如果使用了属性值读取器，那么可以在其中直接处理默认值和转换逻辑。  
+
+# allowPrimitiveWrapperAutoCast
+允许自动拆箱和装箱  
+考虑以下代码:
+```java
+@Data
+class Data1{
+    int a;
+}
+@Data
+class Data2{
+    Integer a;
+}
+```
+在这两个类型中，a属性的getter方法返回值是int，而setter方法接收参数是Integer。  
+实际上这是两种不兼容的类型，为了支持其的取值和赋值，需要进行自动拆箱和装箱。  
+
+如果设置了allowPrimitiveWrapperAutoCast=false，  
+那么在拷贝时，这个a属性会直接被认为是不兼容的属性，不会被拷贝。
+
+
 
 #  集合/数组容器的智能兼容处理
 在探测属性时 有时候会遇到带泛型的集合，比如:

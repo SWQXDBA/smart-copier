@@ -17,6 +17,9 @@ object SmartCopier {
 
     private val localCache: ThreadLocal<MutableMap<String, Copier>> = ThreadLocal.withInitial { mutableMapOf() }
 
+
+    internal var defaultConfig = CopyConfig()
+
     /**
      * 是否开启debug模式
      */
@@ -63,7 +66,7 @@ object SmartCopier {
 
     @JvmStatic
     @JvmOverloads
-    fun copy(src: Any?, target: Any?, config: CopyConfig? = CopyConfig()) {
+    fun copy(src: Any?, target: Any?, config: CopyConfig? = null) {
         if (src == null || target == null) {
             return
         }

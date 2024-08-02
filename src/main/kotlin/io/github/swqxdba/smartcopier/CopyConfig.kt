@@ -1,5 +1,6 @@
 package io.github.swqxdba.smartcopier
 
+import io.github.swqxdba.smartcopier.propertyreader.CustomPropertyReaderProvider
 import java.lang.reflect.Method
 
 
@@ -82,13 +83,17 @@ interface PropertyMapperRuleCustomizer {
  * @param defaultValueProvider 默认值提供者
  * @param propertyValueConverters 属性值转换器
  * @param propertyMapperRuleCustomizer 用于客制化属性的对应关系
+ * @param propertyValueReaderProvider 用于客制化属性的读取方式
+ * @param allowPrimitiveWrapperAutoCast 是否允许自动拆箱和装箱
  */
 class CopyConfig(
     var defaultValueProvider: PropertyValueProvider? = null,
-    var propertyValueConverters: MutableList<PropertyValueConverter>? =null,
+    var propertyValueConverters: MutableList<PropertyValueConverter>? = null,
     var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
+    var propertyValueReaderProvider: CustomPropertyReaderProvider? = null,
+    var allowPrimitiveWrapperAutoCast: Boolean = true
 
-    ) {
+) {
     fun addConverter(vararg converter: PropertyValueConverter) {
         var list = propertyValueConverters
         if (list == null) {
