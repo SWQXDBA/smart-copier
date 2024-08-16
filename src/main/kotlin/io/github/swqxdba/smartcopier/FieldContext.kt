@@ -4,7 +4,7 @@ import net.sf.cglib.core.ClassEmitter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 
-internal class GenerateContext(
+internal class FieldContext(
     val fields: MutableList<FieldWrapper> = mutableListOf(),
 ) {
     private var converterCounter = 0

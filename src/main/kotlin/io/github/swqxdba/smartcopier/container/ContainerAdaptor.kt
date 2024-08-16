@@ -7,7 +7,7 @@ import io.github.swqxdba.smartcopier.SmartCopier
 import java.lang.Exception
 import java.lang.reflect.Method
 
-class ContainerAdaptor : PropertyValueConverter {
+class ContainerAdaptor(private val smartCopier:SmartCopier) : PropertyValueConverter {
 
     lateinit var setterContainerWrapper: IterWrapper
 
@@ -17,6 +17,7 @@ class ContainerAdaptor : PropertyValueConverter {
 
     var sourceGetter:Method?=null
     var targetSetter:Method?=null
+
 
 
     override fun shouldIntercept(
@@ -46,7 +47,7 @@ class ContainerAdaptor : PropertyValueConverter {
             if (primitiveClass1 != primitiveClass2||primitiveClass1==null) {
                 //尝试用beanConverter
                 val beanConverter =
-                    SmartCopier.beanConvertProvider?.tryGetConverter(getterElementClass, setterElementClass)
+                    smartCopier.beanConvertProvider?.tryGetConverter(getterElementClass, setterElementClass)
                         ?: return false
                 elementTransfer = { beanConverter.doConvert(it) }
             }

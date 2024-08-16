@@ -21,19 +21,19 @@ public class SubPojoTests {
         Fa2 f1;
     }
 
-
+    private SmartCopier SmartCopier = new SmartCopier();
     @Test
     public void doTest(){
         SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
             @Nullable
             @Override
-            public BeanConverter tryGetConverter(@NotNull Class<?> from, @NotNull Class<?> to) {
+            public BeanConverter tryGetConverter(@NotNull Class<?> fromClass, @NotNull Class<?> toClass) {
                 return new BeanConverter() {
                     @NotNull
                     @Override
                     public Object doConvert(@NotNull Object from) {
                         try {
-                            Object instance = to.newInstance();
+                            Object instance = toClass.newInstance();
                             SmartCopier.copy(from,instance);
                             return instance;
                         } catch (InstantiationException e) {

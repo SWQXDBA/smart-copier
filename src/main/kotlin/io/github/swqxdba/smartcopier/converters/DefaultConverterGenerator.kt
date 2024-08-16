@@ -14,7 +14,8 @@ class DefaultConverterGenerator {
             targetSetter: Method,
             sourceClass: Class<*>,
             targetClass: Class<*>,
-            copyMethodType: CopyMethodType
+            copyMethodType: CopyMethodType,
+            smartCopier: SmartCopier
         ): PropertyValueConverter? {
             val setterType = targetSetter.genericParameterTypes[0]
             val getterType = sourceGetter.genericReturnType
@@ -23,7 +24,7 @@ class DefaultConverterGenerator {
                 return null
             }
             if (IterWrapper.canWrap(setterType) && IterWrapper.canWrap(getterType)) {
-                val containerAdaptor = ContainerAdaptor()
+                val containerAdaptor = ContainerAdaptor(smartCopier)
 
                 return if (containerAdaptor.shouldIntercept(
                         sourceGetter,
@@ -41,7 +42,7 @@ class DefaultConverterGenerator {
             val returnClassType = sourceGetter.returnType
             val setterClassType = targetSetter.parameterTypes[0]
 
-            val beanConverter = SmartCopier.beanConvertProvider?.tryGetConverter(
+            val beanConverter = smartCopier.beanConvertProvider?.tryGetConverter(
                 returnClassType,
                 setterClassType
             )

@@ -4,7 +4,7 @@ interface BeanConvertProvider {
     /**
      * 尝试获取转换器 如果返回null表示不支持。
      */
-    fun tryGetConverter(from: Class<*>, to: Class<*>):BeanConverter?
+    fun tryGetConverter(fromClass: Class<*>, toClass: Class<*>):BeanConverter?
 }
 @FunctionalInterface
 interface BeanConverter {

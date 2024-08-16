@@ -121,8 +121,6 @@ class CopyConfig(
         return result
     }
 
-    companion object {
-        val currentConfig: ThreadLocal<CopyConfig> = ThreadLocal()
-    }
+
 
 }

@@ -14,11 +14,16 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 
-internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val config0: CopyConfig? = null) {
+internal class CopierGenerator(
+    val sourceClass: Class<*>,
+    val targetClass: Class<*>,
+    config0: CopyConfig? = null,
+    val context: SmartCopier
+) {
 
-    var config: CopyConfig? = config0
+    var config: CopyConfig = config0?:context.defaultConfig?:CopyConfig()
 
-    val generateContext = GenerateContext()
+    val fieldContext = FieldContext()
 
     companion object {
         val defineClassMethod = ClassLoader::class.java.getDeclaredMethod(
@@ -53,10 +58,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
     //调整属性映射
     init {
-        if (config == null) {
-            config = SmartCopier.defaultConfig
-        }
-        CopyConfig.currentConfig.set(config)
+
         val targetProperties = InternalUtil.getPropertyDescriptors(targetClass)
 
         var mapper = mutableMapOf<Method, Method>()
@@ -76,7 +78,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             targetGetterMethodMap[writeMethod] = targetGetterMethod
         }
         //根据设置调整字段映射
-        config?.propertyMapperRuleCustomizer?.let {
+        config.propertyMapperRuleCustomizer?.let {
             mapper = it.mapperRule(sourceClass, targetClass, mapper).toMutableMap()
         }
 
@@ -111,14 +113,13 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         val generateClass = generateClass()
         val copier = generateClass.newInstance() as Copier
         //给字段设置值
-        for (fieldWrapper in generateContext.fields) {
+        for (fieldWrapper in fieldContext.fields) {
             fieldWrapper.value?.let { value ->
                 val field = generateClass.getDeclaredField(fieldWrapper.name)
                 field.isAccessible = true
                 field[copier] = value
             }
         }
-        CopyConfig.currentConfig.set(null)
         return copier
     }
 
@@ -140,8 +141,8 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
         EmitUtils.null_constructor(ce)
 
-        config?.propertyValueConverters?.forEach {
-            generateContext.addValueConverter(it, ce)
+        config.propertyValueConverters?.forEach {
+            fieldContext.addValueConverter(it, ce)
         }
 
 
@@ -153,12 +154,12 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         ce.end_class()
 
         val toByteArray = cv.toByteArray()
-        if (SmartCopier.debugMode) {
-            SmartCopier.debugOutPutDir?.let { dir ->
+        if (context.debugMode) {
+            context.debugOutPutDir?.let { dir ->
                 File(dir).mkdirs()
-                Files.write(Paths.get(dir, generateClassName + ".class"), toByteArray)
+                Files.write(Paths.get(dir, "$generateClassName.class"), toByteArray)
             }
-            SmartCopier.debugOutputStream?.write(toByteArray)
+            context.debugOutputStream?.write(toByteArray)
         }
         return defineClass(generateClassName, toByteArray)
     }
@@ -217,13 +218,13 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             //注意 每一种方法中的默认值可以不同!!!
             val defaultFieldName = "${copyMethodType.name}_default_value_of_" + targetProperty.name
 
-            val defaultValueProvider = config?.defaultValueProvider
+            val defaultValueProvider = config.defaultValueProvider
             var defaultValue: Any? = null
             defaultValueProvider?.let { provider ->
                 defaultValue = provider.provide(reader, writer, sourceClass, targetClass, copyMethodType)
                 if (defaultValue != null) {
                     ce.declare_field(Opcodes.ACC_PRIVATE, defaultFieldName, setterArgType, null)
-                    generateContext.addField(
+                    fieldContext.addField(
                         defaultFieldName,
                         defaultValue
                     )
@@ -232,7 +233,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             }
 
             //处理转换器converter
-            var converterField = generateContext.matchConverter {
+            var converterField = fieldContext.matchConverter {
                 it.shouldIntercept(
                     reader,
                     writer,
@@ -248,8 +249,9 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     writer,
                     sourceClass,
                     targetClass,
-                    copyMethodType
-                )?.let { defaultConverter -> generateContext.addStatefulValueConverter(defaultConverter, ce) }
+                    copyMethodType,
+                    context
+                )?.let { defaultConverter -> fieldContext.addStatefulValueConverter(defaultConverter, ce) }
             }
 
 
@@ -257,13 +259,13 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             //如果类型不兼容 且不适用converter 则忽略该属性
             if (!writer.parameterTypes[0].isAssignableFrom(reader.returnType)) {
                 //不允许自动拆包装 且不使用转换器
-                if(config?.allowPrimitiveWrapperAutoCast != true){
+                if (config.allowPrimitiveWrapperAutoCast != true) {
                     if (!useConverter) {
                         continue
                     }
 
 
-                }else  if(javaObjectClass(writer.parameterTypes[0]) != javaObjectClass(reader.returnType)) {
+                } else if (javaObjectClass(writer.parameterTypes[0]) != javaObjectClass(reader.returnType)) {
                     //允许拆包装 但拆包装不兼容 且不使用转换器
                     if (!useConverter) {
                         continue
@@ -271,12 +273,11 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                 }
 
 
-
             }
 
 
             //自定义reader方法
-            val customReader = config?.propertyValueReaderProvider?.tryGerReader(reader)
+            val customReader = config.propertyValueReaderProvider?.tryGerReader(reader)
             val customReaderFieldName = "custom_reader_${reader.name}"
             if (customReader != null) {
                 ce.declare_field(
@@ -285,7 +286,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     Type.getType(PropertyValueReader::class.java),
                     null
                 )
-                generateContext.addField(customReaderFieldName, customReader)
+                fieldContext.addField(customReaderFieldName, customReader)
             }
 
 
@@ -403,7 +404,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
             } else if (signature == COPY_NONNULL_DESCRIPTOR) {
                 //这三个条件同时满足时 可以确保栈顶是primitive类型 那么直接swap就行 否则要考虑一系列处理
-                if(useConverter || customReader!=null ||!TypeUtils.isPrimitive(getterReturnType)){
+                if (useConverter || customReader != null || !TypeUtils.isPrimitive(getterReturnType)) {
                     codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
 
                     if (useConverter) {
@@ -428,7 +429,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     codeEmitter.popForType(setterArgType)//扔掉currentValue
                     codeEmitter.pop()//扔掉target
                     codeEmitter.visitLabel(end)
-                }else {
+                } else {
                     //primitive时不考虑default value
                     doSwap()
                 }

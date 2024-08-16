@@ -13,6 +13,7 @@ class PrimitiveCastTest {
 
     data class Data2(var value: Int?)
 
+    private val smartCopier = SmartCopier()
     /**
      *
      * (int)-converter->(Integer)--/>(int)
@@ -23,8 +24,8 @@ class PrimitiveCastTest {
     @Test
     fun test1() {
 
-        SmartCopier.debugMode=true
-        SmartCopier.debugOutPutDir="./degg"
+        smartCopier.debugMode=true
+        smartCopier.debugOutPutDir="./degg"
         val d1 = Data(1)
         var propertyValueConverters: MutableList<PropertyValueConverter> =
             mutableListOf(object : PropertyValueConverter {
@@ -43,16 +44,16 @@ class PrimitiveCastTest {
                 }
 
             })
-        SmartCopier.copy(Data(2), d1, CopyConfig(propertyValueConverters = propertyValueConverters))
+        smartCopier.copy(Data(2), d1, CopyConfig(propertyValueConverters = propertyValueConverters))
     }
 
     @Test
     fun primitiveWrapperAutoCast() {
-        SmartCopier.defaultConfig = CopyConfig(allowPrimitiveWrapperAutoCast = true)
-        SmartCopier.debugMode=true
-        SmartCopier.debugOutPutDir="./degg"
+        smartCopier.defaultConfig = CopyConfig(allowPrimitiveWrapperAutoCast = true)
+        smartCopier.debugMode=true
+        smartCopier.debugOutPutDir="./degg"
         //参考基础类型/非基础类型之间是否兼容
-        SmartCopier.copy(Data(2), Data2(1))
-        SmartCopier.copy(Data2(2), Data(1))
+        smartCopier.copy(Data(2), Data2(1))
+        smartCopier.copy(Data2(2), Data(1))
     }
 }

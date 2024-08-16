@@ -7,6 +7,8 @@ import io.github.swqxdba.smartcopier.SmartCopier
 
 class ContainerTest {
 
+
+
     @Test
     fun testArrayAndList(): Unit {
         data class Data1(
@@ -72,6 +74,9 @@ class ContainerTest {
     }
 
     companion object {
+
+        private val SmartCopier = SmartCopier()
+
         @JvmStatic
         @BeforeAll
         fun init(): Unit {

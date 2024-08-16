@@ -5,6 +5,19 @@ import io.github.swqxdba.smartcopier.SmartCopier;
 
 public class DemoJ {
 
+    static SmartCopier SmartCopier = new SmartCopier();
+
+    public static void main(String[] args) {
+        SmartCopier.setDebugMode(true);
+        SmartCopier.setDebugOutPutDir("./debug");
+        copy(new HotelDto(), new Hotel());
+
+    }
+
+    private static void copy(HotelDto from, Hotel to) {
+        SmartCopier.copy(from, to);
+    }
+
     private void copy(Hotel from, Hotel to) {
         to.setHotelName(from.getHotelName());
         to.setHotelCode(from.getHotelCode());
@@ -26,16 +39,6 @@ public class DemoJ {
         if (from.getHotelCode() != null) {
             to.setHotelCode(from.getHotelCode());
         }
-    }
-
-    public static void main(String[] args) {
-        SmartCopier.setDebugMode(true);
-        SmartCopier.setDebugOutPutDir("./debug");
-        copy(new HotelDto() ,new Hotel());
-
-    }
-    private static void copy(HotelDto from, Hotel to) {
-        SmartCopier.copy(from, to);
     }
 
     @Data

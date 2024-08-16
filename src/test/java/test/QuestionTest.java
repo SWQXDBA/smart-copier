@@ -1,5 +1,7 @@
 package test;
 
+
+import io.github.swqxdba.smartcopier.bean.AbstractSmartCopierBasedProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
@@ -18,31 +20,19 @@ import java.util.List;
 
 public class QuestionTest {
 
+    private SmartCopier SmartCopier = new SmartCopier();
+
     //测试集合内属性复制
     //测试不兼容属性复制
     //测试lombok链式setter
     @Test
     void doTest() {
 
-        SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
-            @Nullable
-            @Override
-            public BeanConverter tryGetConverter(@NotNull Class<?> from, @NotNull Class<?> to) {
-                if(!from.getName().toLowerCase().contains("bank")){
-                    return null;
-                }
-                return (src)->{
-                    try {
-                        final Constructor<?> constructor = to.getConstructor();
-                        final Object o = constructor.newInstance();
-                        SmartCopier.copy(src,o);
-                        return o;
-                    } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
-                             IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
+        SmartCopier.setBeanConvertProvider(new AbstractSmartCopierBasedProvider(SmartCopier){
 
-                };
+            @Override
+            public boolean shouldConvert(@NotNull Class<?> from, @NotNull Class<?> to) {
+                return from.getName().toLowerCase().contains("bank");
             }
         });
         Question question = new Question();

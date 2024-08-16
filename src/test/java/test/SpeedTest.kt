@@ -6,6 +6,8 @@ import io.github.swqxdba.smartcopier.SmartCopier
 
 class SpeedTest {
 
+    private val SmartCopier = SmartCopier()
+
     class Data(
         var field1: String? = null,
         var field2: String? = null,
