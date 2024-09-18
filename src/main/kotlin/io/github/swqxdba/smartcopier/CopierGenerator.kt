@@ -2,6 +2,7 @@ package io.github.swqxdba.smartcopier
 
 import io.github.swqxdba.smartcopier.InternalUtil.javaObjectClass
 import io.github.swqxdba.smartcopier.InternalUtil.smartCast
+import io.github.swqxdba.smartcopier.converter.PropertyValueConverter
 import net.sf.cglib.core.*
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -13,11 +14,11 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 
-internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, config0: CopyConfig? = null) {
+internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, config0: CopyConfig? = null,val smartCopier: SmartCopier) {
 
     var config: CopyConfig? = config0
 
-    val generateContext = GenerateContext()
+    val generateContext = FieldContext()
 
     companion object {
         val defineClassMethod = ClassLoader::class.java.getDeclaredMethod(
@@ -53,9 +54,8 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
     //调整属性映射
     init {
         if (config == null) {
-            config = SmartCopier.defaultConfig
+            config = smartCopier.defaultConfig
         }
-        CopyConfig.currentConfig.set(config)
         val targetProperties = InternalUtil.getPropertyDescriptors(targetClass)
 
         var mapper = mutableMapOf<Method, Method>()
@@ -98,7 +98,8 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         val sourceClassName = sourceClass.name
         val targetClassName = targetClass.name
         val className =
-            "SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${copyConfig?.let { copyConfig.hashCode() } ?: "default"}".replace(
+            ("SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${copyConfig?.let { System.identityHashCode(copyConfig) } ?: "default"}_" +
+                    "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClassName)}").replace(
                 ".",
                 "_"
             )
@@ -117,7 +118,6 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                 field[copier] = value
             }
         }
-        CopyConfig.currentConfig.set(null)
         return copier
     }
 
@@ -139,11 +139,6 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
         EmitUtils.null_constructor(ce)
 
-        config?.propertyValueConverters?.forEach {
-            generateContext.addValueConverter(it, ce)
-        }
-
-
 
         generateMethod(ce, COPY_DESCRIPTOR, CopyMethodType.COPY)
         generateMethod(ce, COPY_NONNULL_DESCRIPTOR, CopyMethodType.COPY_NONNULL)
@@ -152,12 +147,12 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         ce.end_class()
 
         val toByteArray = cv.toByteArray()
-        if (SmartCopier.debugMode) {
-            SmartCopier.debugOutPutDir?.let { dir ->
+        if (smartCopier.debugMode) {
+            smartCopier.debugOutPutDir?.let { dir ->
                 File(dir).mkdirs()
                 Files.write(Paths.get(dir, generateClassName + ".class"), toByteArray)
             }
-            SmartCopier.debugOutputStream?.write(toByteArray)
+            smartCopier.debugOutputStream?.write(toByteArray)
         }
         return defineClass(generateClassName, toByteArray)
     }
@@ -231,32 +226,19 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             }
 
             //处理转换器converter
-            var converterField = generateContext.matchConverter {
-                it.shouldIntercept(
-                    reader,
-                    writer,
-                    sourceClass,
-                    targetClass,
-                    copyMethodType
-                )
+            var converterField = config?.findPropertyValueConverter(     reader,
+                writer,
+                sourceClass,
+                targetClass,
+                copyMethodType)?.let {
+                    generateContext.addValueConverter(it,ce)
             }
             //当没有属性转换器 且类型不兼容时 尝试查找类型转换器
             if (converterField == null && !InternalUtil.canAssignableFrom( reader.genericReturnType,   writer.genericParameterTypes[0])) {
                 converterField = config?.findTypeConverter(
                     reader.genericReturnType,
                     writer.genericParameterTypes[0],
-                )?.let { typeConverter -> generateContext.addStatefulValueConverter(object:PropertyValueConverter{
-                    override fun shouldIntercept(
-                        sourceGetter: Method,
-                        targetSetter: Method,
-                        sourceClass: Class<*>,
-                        targetClass: Class<*>,
-                        copyMethodType: CopyMethodType
-                    ): Boolean {
-                        //这里不需要调用shouldIntercept方法 会直接调用convert方法 因此不需要判断
-                        return true
-                    }
-
+                )?.let { typeConverter -> generateContext.addValueConverter(object: PropertyValueConverter {
                     override fun convert(oldValue: Any?): Any? {
                        return typeConverter.doConvert(oldValue)
                     }

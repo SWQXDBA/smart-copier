@@ -2,11 +2,8 @@ package test.model;
 
 import cn.hutool.core.bean.BeanUtil;
 import lombok.Data;
-import org.jetbrains.annotations.NotNull;
 import io.github.swqxdba.smartcopier.Copier;
 import io.github.swqxdba.smartcopier.SmartCopier;
-import io.github.swqxdba.smartcopier.typeconverter.TypeConvertProvider;
-import io.github.swqxdba.smartcopier.typeconverter.TypeConverter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,27 +76,6 @@ public class SpeedTestJ {
             mockData.ints = new Integer[]{i,1,3,5,5,1,6,32,4,1};
             mockDataList.add(mockData);
         }
-        SmartCopier.setTypeConvertProvider(new TypeConvertProvider() {
-            @NotNull
-            @Override
-            public TypeConverter tryGetConverter(@NotNull Class<?> fromClass, @NotNull Class<?> toClass) {
-                Copier copier1 = SmartCopier.getCopier(fromClass, toClass);
-                return  new TypeConverter() {
-
-                    @NotNull
-                    @Override
-                    public Object doConvert(@NotNull Object from) {
-                        try {
-                            Object instance = toClass.newInstance();
-                            copier1.copy(from,instance);
-                            return instance;
-                        } catch (InstantiationException | IllegalAccessException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                };
-            }
-        });
     }
     static int rounds = 200;
 

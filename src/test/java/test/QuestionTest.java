@@ -3,18 +3,15 @@ package test;
 
 import io.github.swqxdba.smartcopier.bean.AbstractSmartCopierBasedProvider;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import io.github.swqxdba.smartcopier.SmartCopier;
-import io.github.swqxdba.smartcopier.bean.BeanConvertProvider;
-import io.github.swqxdba.smartcopier.bean.BeanConverter;
+
 import test.model.Bank;
 import test.model.Question;
 import test.model.QuestionDto;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,14 +24,14 @@ public class QuestionTest {
     //测试lombok链式setter
     @Test
     void doTest() {
-
-        SmartCopier.setBeanConvertProvider(new AbstractSmartCopierBasedProvider(SmartCopier){
+        SmartCopier.getDefaultConfig().addConverter(new AbstractSmartCopierBasedProvider(SmartCopier){
 
             @Override
             public boolean shouldConvert(@NotNull Class<?> from, @NotNull Class<?> to) {
                 return from.getName().toLowerCase().contains("bank");
             }
         });
+
         Question question = new Question();
         question.setId(123L);
         question.setAnswerAnalysis("answerAnalysis");

@@ -2,8 +2,9 @@ package test
 
 import io.github.swqxdba.smartcopier.CopyConfig
 import io.github.swqxdba.smartcopier.CopyMethodType
-import io.github.swqxdba.smartcopier.PropertyValueConverter
 import io.github.swqxdba.smartcopier.SmartCopier
+import io.github.swqxdba.smartcopier.converter.PropertyValueConverter
+import io.github.swqxdba.smartcopier.converter.PropertyValueConverterProvider
 import org.junit.jupiter.api.Test
 import java.lang.reflect.Method
 
@@ -14,6 +15,7 @@ class PrimitiveCastTest {
     data class Data2(var value: Int?)
 
     private val smartCopier = SmartCopier()
+
     /**
      *
      * (int)-converter->(Integer)--/>(int)
@@ -24,34 +26,35 @@ class PrimitiveCastTest {
     @Test
     fun test1() {
 
-        smartCopier.debugMode=true
-        smartCopier.debugOutPutDir="./degg"
+        smartCopier.debugMode = true
+        smartCopier.debugOutPutDir = "./degg"
         val d1 = Data(1)
-        var propertyValueConverters: MutableList<PropertyValueConverter> =
-            mutableListOf(object : PropertyValueConverter {
-                override fun shouldIntercept(
+        val propertyValueConverters: MutableList<PropertyValueConverterProvider> =
+            mutableListOf(object : PropertyValueConverterProvider {
+                override fun tryGetConverter(
                     sourceGetter: Method,
                     targetSetter: Method,
                     sourceClass: Class<*>,
                     targetClass: Class<*>,
                     copyMethodType: CopyMethodType
-                ): Boolean {
-                    return true
+                ): PropertyValueConverter {
+                    return object : PropertyValueConverter {
+                        override fun convert(oldValue: Any?): Any? {
+                            return oldValue
+                        }
+                    }
                 }
 
-                override fun convert(oldValue: Any?): Any? {
-                    return oldValue
-                }
 
             })
-        smartCopier.copy(Data(2), d1, CopyConfig(propertyValueConverters = propertyValueConverters))
+        smartCopier.copy(Data(2), d1, CopyConfig(propertyValueConverterProviders = propertyValueConverters))
     }
 
     @Test
     fun primitiveWrapperAutoCast() {
         smartCopier.defaultConfig = CopyConfig(allowPrimitiveWrapperAutoCast = true)
-        smartCopier.debugMode=true
-        smartCopier.debugOutPutDir="./degg"
+        smartCopier.debugMode = true
+        smartCopier.debugOutPutDir = "./degg"
         //参考基础类型/非基础类型之间是否兼容
         smartCopier.copy(Data(2), Data2(1))
         smartCopier.copy(Data2(2), Data(1))

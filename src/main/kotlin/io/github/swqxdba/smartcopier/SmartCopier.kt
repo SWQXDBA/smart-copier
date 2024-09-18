@@ -1,6 +1,5 @@
 package io.github.swqxdba.smartcopier
 
-import io.github.swqxdba.smartcopier.typeconverter.TypeConvertProvider
 import java.io.OutputStream
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -76,7 +75,7 @@ class SmartCopier {
             localCache[hash] = proxyCopier
             globalCache[hash] = proxyCopier
             val start = System.currentTimeMillis()
-            proxyCopier.copier = CopierGenerator(sourceClass, targetClass, config, this).generateCopier()
+            proxyCopier.copier = CopierGenerator(sourceClass, targetClass, config,this).generateCopier()
             _copierGenerateUseMills.addAndGet(System.currentTimeMillis() - start)
             return proxyCopier
         }

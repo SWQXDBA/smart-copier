@@ -2,6 +2,9 @@ package test
 
 import org.junit.jupiter.api.Test
 import io.github.swqxdba.smartcopier.*
+import io.github.swqxdba.smartcopier.converter.DefaultValueProvider
+import io.github.swqxdba.smartcopier.converter.PropertyValueConverter
+import io.github.swqxdba.smartcopier.converter.PropertyValueConverterProvider
 import java.lang.reflect.Method
 
 
@@ -123,41 +126,43 @@ class TestPojoProperty {
             listOf("stringlist")
         )
         val config = CopyConfig()
-        val converter1 = object : PropertyValueConverter {
-            override fun shouldIntercept(
+        val converter1 = object : PropertyValueConverterProvider {
+
+            override fun tryGetConverter(
                 sourceGetter: Method,
                 targetSetter: Method,
                 sourceClass: Class<*>,
                 targetClass: Class<*>,
                 copyMethodType: CopyMethodType
-            ): Boolean {
-                if (targetSetter.name.lowercase().contains("wraplong")) {
-                    return true
+            ): PropertyValueConverter? {
+                if (!targetSetter.name.lowercase().contains("wraplong")) {
+                    return null
                 }
-                return false
-            }
+                return object : PropertyValueConverter {
+                    override fun convert(oldValue: Any?): Any? {
+                        return -1L
+                    }
 
-            override fun convert(oldValue: Any?): Any? {
-                return -1L
+                }
             }
 
         }
-        val converter2 = object : PropertyValueConverter {
-            override fun shouldIntercept(
+        val converter2 = object : PropertyValueConverterProvider {
+            override fun tryGetConverter(
                 sourceGetter: Method,
                 targetSetter: Method,
                 sourceClass: Class<*>,
                 targetClass: Class<*>,
                 copyMethodType: CopyMethodType
-            ): Boolean {
-                if (targetSetter.name == "setStr") {
-                    return true
+            ): PropertyValueConverter? {
+                if (targetSetter.name != "setStr") {
+                    return null
                 }
-                return false
-            }
-
-            override fun convert(oldValue: Any?): Any? {
-                return "converted str!!!"
+                return object : PropertyValueConverter {
+                    override fun convert(oldValue: Any?): Any? {
+                        return "converted str!!!"
+                    }
+                }
             }
 
         }
@@ -179,7 +184,7 @@ class TestPojoProperty {
         )
 
         val config = CopyConfig()
-        val defaultValueProvider = object : PropertyValueProvider {
+        val defaultValueProvider = object : DefaultValueProvider {
             override fun provide(
                 sourceGetter: Method,
                 targetSetter: Method,

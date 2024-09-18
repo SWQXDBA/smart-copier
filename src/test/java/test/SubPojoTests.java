@@ -1,13 +1,15 @@
 package test;
 
+import io.github.swqxdba.smartcopier.converter.TypeConverterProvider;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import io.github.swqxdba.smartcopier.SmartCopier;
-import io.github.swqxdba.smartcopier.typeconverter.TypeConvertProvider;
-import io.github.swqxdba.smartcopier.typeconverter.TypeConverter;
+import io.github.swqxdba.smartcopier.converter.TypeConverter;
+
+import java.lang.reflect.Type;
 
 public class SubPojoTests {
 
@@ -24,16 +26,15 @@ public class SubPojoTests {
     private SmartCopier SmartCopier = new SmartCopier();
     @Test
     public void doTest(){
-        SmartCopier.setTypeConvertProvider(new TypeConvertProvider() {
+        SmartCopier.getDefaultConfig().addConverter(new TypeConverterProvider() {
             @Nullable
             @Override
-            public TypeConverter tryGetConverter(@NotNull Class<?> from, @NotNull Class<?> to) {
+            public TypeConverter tryGetConverter(@NotNull Type from, @NotNull Type to) {
                 return new TypeConverter() {
-                    @NotNull
                     @Override
-                    public Object doConvert(@NotNull Object from) {
+                    public Object doConvert( Object from) {
                         try {
-                            Object instance = toClass.newInstance();
+                            Object instance = ((Class<?>)to).newInstance();
                             SmartCopier.copy(from,instance);
                             return instance;
                         } catch (InstantiationException e) {
@@ -44,12 +45,13 @@ public class SubPojoTests {
                     }
                 };
             }
+
+
         });
         Fa from = new Fa();
         from.f1 = new Fa();
         Fa2 to = new Fa2();
         SmartCopier.copy(from,to);
         Assertions.assertNotNull(to.getF1());
-        SmartCopier.setTypeConvertProvider(null);
     }
 }
