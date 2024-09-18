@@ -21,7 +21,7 @@ public class SubPojoTests {
         Fa2 f1;
     }
 
-
+    private SmartCopier SmartCopier = new SmartCopier();
     @Test
     public void doTest(){
         SmartCopier.setTypeConvertProvider(new TypeConvertProvider() {
@@ -33,7 +33,7 @@ public class SubPojoTests {
                     @Override
                     public Object doConvert(@NotNull Object from) {
                         try {
-                            Object instance = to.newInstance();
+                            Object instance = toClass.newInstance();
                             SmartCopier.copy(from,instance);
                             return instance;
                         } catch (InstantiationException e) {

@@ -12,7 +12,7 @@ import java.lang.reflect.Method
 class CustomPropertyReaderTest {
     data class Data(var a: Int, var b: Int) {}
 
-
+    private val SmartCopier = SmartCopier()
     @Test
     fun test() {
         SmartCopier.debugMode=true

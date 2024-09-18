@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SpeedTestJ {
-
+    private static SmartCopier SmartCopier = new SmartCopier();
     @Data
     public static class MockData{
         Integer i1;

@@ -6,6 +6,9 @@ import java.lang.reflect.Method
 
 
 class TestPojoProperty {
+
+    private val SmartCopier = SmartCopier()
+
     data class Data(
         var str: String? = null,
         var primitiveInt: Int = 0,

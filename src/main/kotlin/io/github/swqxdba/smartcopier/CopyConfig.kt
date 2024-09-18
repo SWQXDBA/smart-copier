@@ -126,9 +126,7 @@ class CopyConfig(
         return result
     }
 
-    companion object {
-        val currentConfig: ThreadLocal<CopyConfig> = ThreadLocal()
-    }
+
 
     fun findTypeConverter(from: Type, to: Type): TypeConverter? {
         return typeConverters?.find { it.shouldConvert(from, to) }

@@ -1,6 +1,7 @@
 package io.github.swqxdba.smartcopier
 
 
+import net.sf.cglib.beans.BeanCopier
 import net.sf.cglib.core.CodeEmitter
 import net.sf.cglib.core.Signature
 import java.lang.reflect.*
