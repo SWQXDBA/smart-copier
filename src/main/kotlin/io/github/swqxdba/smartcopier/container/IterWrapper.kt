@@ -17,7 +17,7 @@ class IterWrapper(type: Type) {
 
     val fillExecutor: (Any, Collection<Any?>) -> Unit
 
-    val elementsResolver: (Any) -> Collection<Any>
+    val elementsResolver: (Any) -> Collection<Any?>
 
     init {
 

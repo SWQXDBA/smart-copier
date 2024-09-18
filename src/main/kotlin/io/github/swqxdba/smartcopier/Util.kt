@@ -61,18 +61,15 @@ internal object InternalUtil {
         return propertyDescriptors.toTypedArray()
     }
 
-    fun getElementClass(type: Type): Class<*>? {
+    fun getElementType(type: Type): Type? {
         if (type is ParameterizedType) {
-            val rawType = type.actualTypeArguments[0]
-            if (rawType !is Class<*>) {
-                return null
-            }
-            return rawType
+            return type.actualTypeArguments[0]
         }
         if (type is Class<*>) {
             if (type.isArray) {
                 return type.componentType
             }
+            return Any::class.java
         }
         return null
     }
@@ -91,13 +88,16 @@ internal object InternalUtil {
         return null
     }
 
-    fun getPrimitiveClass(clazz: Class<*>): Class<*>? {
+    fun getPrimitiveClass(clazz: Type): Class<*>? {
+        if (clazz !is Class<*>) {
+            return null
+        }
         if (clazz.isPrimitive) {
             return clazz
         }
         val field: Field = try {
             clazz.getField("TYPE")
-        }catch (e:NoSuchFieldException){
+        } catch (e: NoSuchFieldException) {
             return null
         }
 
@@ -132,57 +132,89 @@ internal object InternalUtil {
         return { noArgsConstructor.newInstance() }
     }
 
-    fun smartCast(fromType:Class<*>, toType:Class<*>, codeEmitter:CodeEmitter){
-        if(fromType==toType){
+    fun canAssignableFrom(from: Type, to: Type): Boolean {
+        if (from == to) {
+            return true
+        }
+        if (from is Class<*> && to is Class<*>) {
+            return to.isAssignableFrom(from)
+        }
+        //泛型时 需要比较泛型参数
+        if (from is ParameterizedType && to is ParameterizedType) {
+            if (from.actualTypeArguments.size != to.actualTypeArguments.size) {
+                return false
+            }
+            if (!canAssignableFrom(from.rawType, to.rawType)) {
+                return false
+            }
+            for (i in from.actualTypeArguments.indices) {
+                val fromTypeArg = from.actualTypeArguments[i]
+                val toTypeArg = to.actualTypeArguments[i]
+                if(!canAssignableFrom(fromTypeArg, toTypeArg)){
+                    return false
+                }
+            }
+            return true
+        }
+        return false
+    }
+
+    fun smartCast(fromType: Class<*>, toType: Class<*>, codeEmitter: CodeEmitter) {
+        if (fromType == toType) {
             return
         }
         //两种均为基本类型 或者均为非基本类型 都直接转换
-        if(fromType.isPrimitive && toType.isPrimitive){
+        if (fromType.isPrimitive && toType.isPrimitive) {
             codeEmitter.checkcast(org.objectweb.asm.Type.getType(toType))
             return
         }
-        if(!fromType.isPrimitive && !toType.isPrimitive){
+        if (!fromType.isPrimitive && !toType.isPrimitive) {
             codeEmitter.checkcast(org.objectweb.asm.Type.getType(toType))
             return
         }
 
-        if(toType.isPrimitive){
-            if(fromType!=javaObjectClass(toType)){
+        if (toType.isPrimitive) {
+            if (fromType != javaObjectClass(toType)) {
                 codeEmitter.checkcast(org.objectweb.asm.Type.getType(javaObjectClass(toType)))
             }
 
-            when(toType){
-                Int::class.java->{
+            when (toType) {
+                Int::class.java -> {
                     codeEmitter.invoke_virtual(
                         org.objectweb.asm.Type.getType(java.lang.Integer::class.java),
                         Signature("intValue", org.objectweb.asm.Type.getType(Int::class.java), arrayOf())
                     )
                 }
-                Long::class.java->{
+
+                Long::class.java -> {
                     codeEmitter.invoke_virtual(
                         org.objectweb.asm.Type.getType(java.lang.Long::class.java),
                         Signature("longValue", org.objectweb.asm.Type.getType(Long::class.java), arrayOf())
                     )
                 }
-                Float::class.java->{
+
+                Float::class.java -> {
                     codeEmitter.invoke_virtual(
                         org.objectweb.asm.Type.getType(java.lang.Float::class.java),
                         Signature("floatValue", org.objectweb.asm.Type.getType(Float::class.java), arrayOf())
                     )
                 }
-                Double::class.java->{
+
+                Double::class.java -> {
                     codeEmitter.invoke_virtual(
                         org.objectweb.asm.Type.getType(java.lang.Double::class.java),
                         Signature("doubleValue", org.objectweb.asm.Type.getType(Double::class.java), arrayOf())
                     )
                 }
-                Byte::class.java->{
+
+                Byte::class.java -> {
                     codeEmitter.invoke_virtual(
                         org.objectweb.asm.Type.getType(java.lang.Byte::class.java),
-                        Signature("byteValue", org.objectweb.asm.Type.getType(Byte::class.java),arrayOf())
+                        Signature("byteValue", org.objectweb.asm.Type.getType(Byte::class.java), arrayOf())
                     )
                 }
-                Short::class.java->{
+
+                Short::class.java -> {
                     codeEmitter.invoke_virtual(
                         org.objectweb.asm.Type.getType(java.lang.Short::class.java),
                         Signature("shortValue", org.objectweb.asm.Type.getType(Short::class.java), arrayOf())
@@ -190,66 +222,101 @@ internal object InternalUtil {
                 }
             }
 
-        }else{
-            when(fromType){
+        } else {
+            when (fromType) {
                 Int::class.javaPrimitiveType -> {
                     codeEmitter.invoke_static(
                         org.objectweb.asm.Type.getType(Int::class.javaObjectType),
-                        Signature("valueOf", org.objectweb.asm.Type.getType(Int::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Int::class.javaPrimitiveType)))
+                        Signature(
+                            "valueOf",
+                            org.objectweb.asm.Type.getType(Int::class.javaObjectType),
+                            arrayOf(org.objectweb.asm.Type.getType(Int::class.javaPrimitiveType))
+                        )
                     )
                     // Assuming we are boxing the primitive int to Integer
                 }
+
                 Long::class.javaPrimitiveType -> {
                     codeEmitter.invoke_static(
                         org.objectweb.asm.Type.getType(Long::class.javaObjectType),
-                        Signature("valueOf", org.objectweb.asm.Type.getType(Long::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Long::class.javaPrimitiveType)))
+                        Signature(
+                            "valueOf",
+                            org.objectweb.asm.Type.getType(Long::class.javaObjectType),
+                            arrayOf(org.objectweb.asm.Type.getType(Long::class.javaPrimitiveType))
+                        )
                     )
                 }
+
                 Float::class.javaPrimitiveType -> {
                     codeEmitter.invoke_static(
                         org.objectweb.asm.Type.getType(Float::class.javaObjectType),
-                        Signature("valueOf", org.objectweb.asm.Type.getType(Float::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Float::class.javaPrimitiveType)))
+                        Signature(
+                            "valueOf",
+                            org.objectweb.asm.Type.getType(Float::class.javaObjectType),
+                            arrayOf(org.objectweb.asm.Type.getType(Float::class.javaPrimitiveType))
+                        )
                     )
                 }
+
                 Double::class.javaPrimitiveType -> {
                     codeEmitter.invoke_static(
                         org.objectweb.asm.Type.getType(Double::class.javaObjectType),
-                        Signature("valueOf", org.objectweb.asm.Type.getType(Double::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Double::class.javaPrimitiveType)))
+                        Signature(
+                            "valueOf",
+                            org.objectweb.asm.Type.getType(Double::class.javaObjectType),
+                            arrayOf(org.objectweb.asm.Type.getType(Double::class.javaPrimitiveType))
+                        )
                     )
                 }
+
                 Byte::class.javaPrimitiveType -> {
                     codeEmitter.invoke_static(
                         org.objectweb.asm.Type.getType(Byte::class.javaObjectType),
-                        Signature("valueOf", org.objectweb.asm.Type.getType(Byte::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Byte::class.javaPrimitiveType)))
+                        Signature(
+                            "valueOf",
+                            org.objectweb.asm.Type.getType(Byte::class.javaObjectType),
+                            arrayOf(org.objectweb.asm.Type.getType(Byte::class.javaPrimitiveType))
+                        )
                     )
                 }
+
                 Short::class.javaPrimitiveType -> {
                     codeEmitter.invoke_static(
                         org.objectweb.asm.Type.getType(Short::class.javaObjectType),
-                        Signature("valueOf", org.objectweb.asm.Type.getType(Short::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Short::class.javaPrimitiveType)))
+                        Signature(
+                            "valueOf",
+                            org.objectweb.asm.Type.getType(Short::class.javaObjectType),
+                            arrayOf(org.objectweb.asm.Type.getType(Short::class.javaPrimitiveType))
+                        )
                     )
                 }
+
                 Boolean::class.javaPrimitiveType -> {
                     codeEmitter.invoke_static(
                         org.objectweb.asm.Type.getType(Boolean::class.javaObjectType),
-                        Signature("valueOf", org.objectweb.asm.Type.getType(Boolean::class.javaObjectType), arrayOf(org.objectweb.asm.Type.getType(Boolean::class.javaPrimitiveType)))
+                        Signature(
+                            "valueOf",
+                            org.objectweb.asm.Type.getType(Boolean::class.javaObjectType),
+                            arrayOf(org.objectweb.asm.Type.getType(Boolean::class.javaPrimitiveType))
+                        )
                     )
                 }
             }
 
         }
     }
-    fun javaObjectClass(type:Class<*>):Class<*>{
+
+    fun javaObjectClass(type: Class<*>): Class<*> {
         return when (type.name) {
             "boolean" -> java.lang.Boolean::class.java
-            "char"    -> Character::class.java
-            "byte"    -> java.lang.Byte::class.java
-            "short"   -> java.lang.Short::class.java
-            "int"     -> Integer::class.java
-            "float"   -> java.lang.Float::class.java
-            "long"    -> java.lang.Long::class.java
-            "double"  -> java.lang.Double::class.java
-            "void"    -> Void::class.java
+            "char" -> Character::class.java
+            "byte" -> java.lang.Byte::class.java
+            "short" -> java.lang.Short::class.java
+            "int" -> Integer::class.java
+            "float" -> java.lang.Float::class.java
+            "long" -> java.lang.Long::class.java
+            "double" -> java.lang.Double::class.java
+            "void" -> Void::class.java
             else -> type
         }
     }

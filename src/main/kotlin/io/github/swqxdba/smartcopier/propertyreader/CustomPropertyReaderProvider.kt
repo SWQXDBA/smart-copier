@@ -7,5 +7,4 @@ import java.lang.reflect.Method
  */
 interface CustomPropertyReaderProvider {
     fun tryGerReader(getterMethod:Method): PropertyValueReader?
-
 }

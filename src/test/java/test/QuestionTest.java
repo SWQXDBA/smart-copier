@@ -5,8 +5,8 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import io.github.swqxdba.smartcopier.SmartCopier;
-import io.github.swqxdba.smartcopier.bean.BeanConvertProvider;
-import io.github.swqxdba.smartcopier.bean.BeanConverter;
+import io.github.swqxdba.smartcopier.typeconverter.TypeConvertProvider;
+import io.github.swqxdba.smartcopier.typeconverter.TypeConverter;
 import test.model.Bank;
 import test.model.Question;
 import test.model.QuestionDto;
@@ -24,10 +24,10 @@ public class QuestionTest {
     @Test
     void doTest() {
 
-        SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
+        SmartCopier.setTypeConvertProvider(new TypeConvertProvider() {
             @Nullable
             @Override
-            public BeanConverter tryGetConverter(@NotNull Class<?> from, @NotNull Class<?> to) {
+            public TypeConverter tryGetConverter(@NotNull Class<?> from, @NotNull Class<?> to) {
                 if(!from.getName().toLowerCase().contains("bank")){
                     return null;
                 }

@@ -6,7 +6,6 @@ import net.sf.cglib.core.*
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
-import io.github.swqxdba.smartcopier.converters.DefaultConverterGenerator
 import io.github.swqxdba.smartcopier.propertyreader.PropertyValueReader
 import java.io.File
 import java.lang.reflect.Method
@@ -14,7 +13,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 
-internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, val config0: CopyConfig? = null) {
+internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, config0: CopyConfig? = null) {
 
     var config: CopyConfig? = config0
 
@@ -241,15 +240,28 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     copyMethodType
                 )
             }
-            //尝试寻找自带的默认转换器 保证是单独的实例 或者至少是线程安全的 幂等的
-            if (converterField == null) {
-                converterField = DefaultConverterGenerator.tryGetConverter(
-                    reader,
-                    writer,
-                    sourceClass,
-                    targetClass,
-                    copyMethodType
-                )?.let { defaultConverter -> generateContext.addStatefulValueConverter(defaultConverter, ce) }
+            //当没有属性转换器 且类型不兼容时 尝试查找类型转换器
+            if (converterField == null && !InternalUtil.canAssignableFrom( reader.genericReturnType,   writer.genericParameterTypes[0])) {
+                converterField = config?.findTypeConverter(
+                    reader.genericReturnType,
+                    writer.genericParameterTypes[0],
+                )?.let { typeConverter -> generateContext.addStatefulValueConverter(object:PropertyValueConverter{
+                    override fun shouldIntercept(
+                        sourceGetter: Method,
+                        targetSetter: Method,
+                        sourceClass: Class<*>,
+                        targetClass: Class<*>,
+                        copyMethodType: CopyMethodType
+                    ): Boolean {
+                        //这里不需要调用shouldIntercept方法 会直接调用convert方法 因此不需要判断
+                        return true
+                    }
+
+                    override fun convert(oldValue: Any?): Any? {
+                       return typeConverter.doConvert(oldValue)
+                    }
+
+                }, ce) }
             }
 
 

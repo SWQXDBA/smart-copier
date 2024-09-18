@@ -1,7 +1,9 @@
 package io.github.swqxdba.smartcopier
 
 import io.github.swqxdba.smartcopier.propertyreader.CustomPropertyReaderProvider
+import io.github.swqxdba.smartcopier.typeconverter.TypeConverter
 import java.lang.reflect.Method
+import java.lang.reflect.Type
 
 
 /**
@@ -84,6 +86,8 @@ interface PropertyMapperRuleCustomizer {
  * @param propertyValueConverters 属性值转换器
  * @param propertyMapperRuleCustomizer 用于客制化属性的对应关系
  * @param propertyValueReaderProvider 用于客制化属性的读取方式
+ * @param typeConverters 类型转换器
+ * @param propertyValueReaderProvider 属性值读取器
  * @param allowPrimitiveWrapperAutoCast 是否允许自动拆箱和装箱
  */
 class CopyConfig(
@@ -91,6 +95,7 @@ class CopyConfig(
     var propertyValueConverters: MutableList<PropertyValueConverter>? = null,
     var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
     var propertyValueReaderProvider: CustomPropertyReaderProvider? = null,
+    var typeConverters: MutableList<TypeConverter>? = null,
     var allowPrimitiveWrapperAutoCast: Boolean = true
 
 ) {
@@ -125,4 +130,25 @@ class CopyConfig(
         val currentConfig: ThreadLocal<CopyConfig> = ThreadLocal()
     }
 
+    fun findTypeConverter(from: Type, to: Type): TypeConverter? {
+        return typeConverters?.find { it.shouldConvert(from, to) }
+    }
+
+    fun findPropertyValueConverter(
+        sourceGetter: Method,
+        targetSetter: Method,
+        sourceClass: Class<*>,
+        targetClass: Class<*>,
+        copyMethodType: CopyMethodType
+    ): PropertyValueConverter? {
+        return propertyValueConverters?.find {
+            it.shouldIntercept(
+                sourceGetter,
+                targetSetter,
+                sourceClass,
+                targetClass,
+                copyMethodType
+            )
+        }
+    }
 }

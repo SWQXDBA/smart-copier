@@ -1,54 +1,45 @@
-package io.github.swqxdba.smartcopier.container
+package io.github.swqxdba.smartcopier.typeconverter
 
+import io.github.swqxdba.smartcopier.CopyConfig
 import io.github.swqxdba.smartcopier.CopyMethodType
 import io.github.swqxdba.smartcopier.InternalUtil
-import io.github.swqxdba.smartcopier.PropertyValueConverter
 import io.github.swqxdba.smartcopier.SmartCopier
+import io.github.swqxdba.smartcopier.container.IterWrapper
 import java.lang.Exception
 import java.lang.reflect.Method
+import java.lang.reflect.Type
 
-class ContainerAdaptor : PropertyValueConverter {
+class ContainerAdaptor (private val config:CopyConfig):TypeConverter {
 
     lateinit var setterContainerWrapper: IterWrapper
 
     lateinit var getterContainerWrapper: IterWrapper
 
-    var elementTransfer: ((Any) -> Any)? = null
-
-    var sourceGetter:Method?=null
-    var targetSetter:Method?=null
+    var elementTransfer: ((Any?) -> Any?)? = null
 
 
-    override fun shouldIntercept(
-        sourceGetter: Method,
-        targetSetter: Method,
-        sourceClass: Class<*>,
-        targetClass: Class<*>,
-        copyMethodType: CopyMethodType
-    ): Boolean {
-        this.sourceGetter = sourceGetter
-        this.targetSetter = targetSetter
-        val setterType = targetSetter.genericParameterTypes[0]
-        val getterType = sourceGetter.genericReturnType
-        if (!IterWrapper.canWrap(setterType) || !IterWrapper.canWrap(getterType)) {
+
+    override fun shouldConvert(from: Type, to: Type): Boolean {
+        if (!IterWrapper.canWrap(to) || !IterWrapper.canWrap(from)) {
             return false
         }
-        val setterElementClass = InternalUtil.getElementClass(setterType) ?: return false
-        val getterElementClass = InternalUtil.getElementClass(getterType) ?: return false
-        val setterOuterClass = InternalUtil.getOuterClass(setterType) ?: return false
-        val getterOuterClass = InternalUtil.getOuterClass(getterType) ?: return false
+        val toElementType = InternalUtil.getElementType(to) ?: return false
+        val fromElementType = InternalUtil.getElementType(from) ?: return false
+        val setterOuterClass = InternalUtil.getOuterClass(to) ?: return false
+        val getterOuterClass = InternalUtil.getOuterClass(from) ?: return false
+
 
         //集合元素的类型不相同 且不兼容
-        if (setterElementClass != getterElementClass && !setterElementClass.isAssignableFrom(getterElementClass) ) {
-            val primitiveClass1 = InternalUtil.getPrimitiveClass(setterElementClass)
-            val primitiveClass2 = InternalUtil.getPrimitiveClass(getterElementClass)
+        if (!InternalUtil.canAssignableFrom(fromElementType,toElementType)) {
+            val primitiveClass1 = InternalUtil.getPrimitiveClass(toElementType)
+            val primitiveClass2 = InternalUtil.getPrimitiveClass(fromElementType)
             //不可以转化成兼容的基本类型
             if (primitiveClass1 != primitiveClass2||primitiveClass1==null) {
-                //尝试用beanConverter
-                val beanConverter =
-                    SmartCopier.beanConvertProvider?.tryGetConverter(getterElementClass, setterElementClass)
+                //尝试用
+                val typeConverter =
+                    config.findTypeConverter(fromElementType, toElementType)
                         ?: return false
-                elementTransfer = { beanConverter.doConvert(it) }
+                elementTransfer = { typeConverter.doConvert(it) }
             }
 
         }
@@ -63,8 +54,8 @@ class ContainerAdaptor : PropertyValueConverter {
 
 
         return true;
-
     }
+
 
     private fun isJavaImmutableType(type: Class<*>): Boolean {
         return type == String::class.java ||
@@ -83,13 +74,14 @@ class ContainerAdaptor : PropertyValueConverter {
                 type == java.sql.Time::class.java
     }
 
-    override fun convert(oldValue: Any?): Any? {
-        if (oldValue == null) {
+
+    override fun doConvert(from: Any?): Any? {
+        if (from == null) {
             return null
         }
-        val size = getterContainerWrapper.sizeGetter(oldValue)
+        val size = getterContainerWrapper.sizeGetter(from)
         val instance = setterContainerWrapper.instanceCreator(size)
-        var elements = getterContainerWrapper.elementsResolver(oldValue)
+        var elements = getterContainerWrapper.elementsResolver(from)
         elementTransfer?.let { transfer ->
             elements = elements.map { item ->
                 transfer(item)

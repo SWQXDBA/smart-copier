@@ -1,6 +1,6 @@
 package io.github.swqxdba.smartcopier
 
-import io.github.swqxdba.smartcopier.bean.BeanConvertProvider
+import io.github.swqxdba.smartcopier.typeconverter.TypeConvertProvider
 import java.io.OutputStream
 
 object SmartCopier {
@@ -11,7 +11,7 @@ object SmartCopier {
      */
     @Volatile
     @JvmStatic
-    var beanConvertProvider: BeanConvertProvider? = null
+    var typeConvertProvider: TypeConvertProvider? = null
 
     private val cache = HashMap<String, Copier>()
 

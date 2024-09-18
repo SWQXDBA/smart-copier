@@ -6,8 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import io.github.swqxdba.smartcopier.SmartCopier;
-import io.github.swqxdba.smartcopier.bean.BeanConvertProvider;
-import io.github.swqxdba.smartcopier.bean.BeanConverter;
+import io.github.swqxdba.smartcopier.typeconverter.TypeConvertProvider;
+import io.github.swqxdba.smartcopier.typeconverter.TypeConverter;
 
 public class SubPojoTests {
 
@@ -24,11 +24,11 @@ public class SubPojoTests {
 
     @Test
     public void doTest(){
-        SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
+        SmartCopier.setTypeConvertProvider(new TypeConvertProvider() {
             @Nullable
             @Override
-            public BeanConverter tryGetConverter(@NotNull Class<?> from, @NotNull Class<?> to) {
-                return new BeanConverter() {
+            public TypeConverter tryGetConverter(@NotNull Class<?> from, @NotNull Class<?> to) {
+                return new TypeConverter() {
                     @NotNull
                     @Override
                     public Object doConvert(@NotNull Object from) {
@@ -50,6 +50,6 @@ public class SubPojoTests {
         Fa2 to = new Fa2();
         SmartCopier.copy(from,to);
         Assertions.assertNotNull(to.getF1());
-        SmartCopier.setBeanConvertProvider(null);
+        SmartCopier.setTypeConvertProvider(null);
     }
 }

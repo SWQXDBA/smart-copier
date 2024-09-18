@@ -5,8 +5,8 @@ import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 import io.github.swqxdba.smartcopier.Copier;
 import io.github.swqxdba.smartcopier.SmartCopier;
-import io.github.swqxdba.smartcopier.bean.BeanConvertProvider;
-import io.github.swqxdba.smartcopier.bean.BeanConverter;
+import io.github.swqxdba.smartcopier.typeconverter.TypeConvertProvider;
+import io.github.swqxdba.smartcopier.typeconverter.TypeConverter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,12 +79,12 @@ public class SpeedTestJ {
             mockData.ints = new Integer[]{i,1,3,5,5,1,6,32,4,1};
             mockDataList.add(mockData);
         }
-        SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
+        SmartCopier.setTypeConvertProvider(new TypeConvertProvider() {
             @NotNull
             @Override
-            public BeanConverter tryGetConverter(@NotNull Class<?> fromClass, @NotNull Class<?> toClass) {
+            public TypeConverter tryGetConverter(@NotNull Class<?> fromClass, @NotNull Class<?> toClass) {
                 Copier copier1 = SmartCopier.getCopier(fromClass, toClass);
-                return  new BeanConverter() {
+                return  new TypeConverter() {
 
                     @NotNull
                     @Override
