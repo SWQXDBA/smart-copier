@@ -8,15 +8,12 @@ import org.objectweb.asm.Type
 internal class FieldContext(
     val fields: MutableList<FieldWrapper> = mutableListOf(),
 ) {
-    private var converterCounter = 0
-
 
     fun addField(name: String, value: Any?) {
         fields.add(FieldWrapper(name, value))
     }
 
-    fun addValueConverter(valueConverter: PropertyValueConverter, ce: ClassEmitter):FieldWrapper {
-        val converterFieldName = "propertyValueConverter${converterCounter++}"
+    fun addValueConverter(converterFieldName:String,valueConverter: PropertyValueConverter, ce: ClassEmitter):FieldWrapper {
         val fieldWrapper = FieldWrapper(converterFieldName, valueConverter)
 
         fields.add(fieldWrapper)

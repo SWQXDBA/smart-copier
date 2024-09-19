@@ -6,6 +6,9 @@ import io.github.swqxdba.smartcopier.container.IterWrapper
 import java.lang.Exception
 import java.lang.reflect.Type
 
+/**
+ * 用于处理集合/数组的转换
+ */
 class ContainerTypeConverterProvider(private val config: CopyConfig) : TypeConverterProvider {
     override fun tryGetConverter(from: Type, to: Type): TypeConverter? {
         val setterContainerWrapper: IterWrapper
@@ -40,9 +43,8 @@ class ContainerTypeConverterProvider(private val config: CopyConfig) : TypeConve
             setterContainerWrapper = IterWrapper(setterOuterClass)
             getterContainerWrapper = IterWrapper(getterOuterClass)
         } catch (e: Exception) {
-            println("ignore container transfer...")
             return null
         }
-        return ContainerTypeConverter(config, setterContainerWrapper, getterContainerWrapper, elementTransfer)
+        return ContainerTypeConverter(setterContainerWrapper, getterContainerWrapper, elementTransfer)
     }
 }

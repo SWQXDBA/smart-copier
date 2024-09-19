@@ -1,10 +1,10 @@
 package io.github.swqxdba.smartcopier.converter
 
-import io.github.swqxdba.smartcopier.CopyConfig
 import io.github.swqxdba.smartcopier.container.IterWrapper
-
+/**
+ * 用于处理集合/数组的转换
+ */
 class ContainerTypeConverter(
-    private val config: CopyConfig,
     var setterContainerWrapper: IterWrapper,
     var getterContainerWrapper: IterWrapper,
     var elementTransfer: ((Any?) -> Any?)? = null

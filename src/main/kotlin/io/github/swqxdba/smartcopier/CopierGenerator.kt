@@ -178,7 +178,8 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             codeEmitter.load_arg(0)
             codeEmitter.ifnull(methodEndLabel)
         }
-
+        val localVariableStartLabel = codeEmitter.make_label()
+        codeEmitter.visitLabel(localVariableStartLabel)
 
         //从局部变量表中读取source和target变量,把传入的两个object参数转换为对应的类型,压入操作数栈
         //因为要先getter再setter，所以先转换target，再转换source 保证source在栈顶
@@ -187,12 +188,15 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         codeEmitter.load_arg(1)
         codeEmitter.checkcast(targetType)
         val targetLocal = codeEmitter.make_local(targetType)
-        codeEmitter.store_local(targetLocal)
+        codeEmitter.storeLocal(targetLocal)
+
+
+
 
         codeEmitter.load_arg(0)
         codeEmitter.checkcast(sourceType)
         val sourceLocal = codeEmitter.make_local(sourceType)
-        codeEmitter.store_local(sourceLocal)
+        codeEmitter.storeLocal(sourceLocal)
 
         //此时操作数栈是空的
 
@@ -225,20 +229,21 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
             }
 
+            val converterName = "${targetProperty.name}Converter"
             //处理转换器converter
             var converterField = config?.findPropertyValueConverter(     reader,
                 writer,
                 sourceClass,
                 targetClass,
                 copyMethodType)?.let {
-                    generateContext.addValueConverter(it,ce)
+                    generateContext.addValueConverter(converterName,it,ce)
             }
             //当没有属性转换器 且类型不兼容时 尝试查找类型转换器
             if (converterField == null && !InternalUtil.canAssignableFrom( reader.genericReturnType,   writer.genericParameterTypes[0])) {
                 converterField = config?.findTypeConverter(
                     reader.genericReturnType,
                     writer.genericParameterTypes[0],
-                )?.let { typeConverter -> generateContext.addValueConverter(object: PropertyValueConverter {
+                )?.let { typeConverter -> generateContext.addValueConverter(converterName,object: PropertyValueConverter {
                     override fun convert(oldValue: Any?): Any? {
                        return typeConverter.doConvert(oldValue)
                     }
@@ -288,13 +293,13 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                 if (customReader != null) {
                     codeEmitter.load_this()
                     codeEmitter.getfield(customReaderFieldName)
-                    codeEmitter.load_local(sourceLocal)
+                    codeEmitter.loadLocal(sourceLocal)
                     codeEmitter.invoke_interface(
                         Type.getType(PropertyValueReader::class.java),
                         Signature("readValue", Type.getType(Any::class.java), arrayOf(Type.getType(Any::class.java)))
                     )
                 } else {
-                    codeEmitter.load_local(sourceLocal)
+                    codeEmitter.loadLocal(sourceLocal)
                     codeEmitter.invoke(readMethodInfo)
                 }
             }
@@ -335,7 +340,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
             val doSwap = {
                 //复制source 和 target 然后调用方法
-                codeEmitter.load_local(targetLocal)//target
+                codeEmitter.loadLocal(targetLocal)//target
                 invokeReader()
                 invokeWriter()
             }
@@ -379,7 +384,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     doSwap()
                 } else {
                     //先读入target 用于最后执行setter
-                    codeEmitter.load_local(targetLocal)
+                    codeEmitter.loadLocal(targetLocal)
 
                     //可能调用converter进行转换 结束后栈顶是目标值
                     if (useConverter) {
@@ -398,7 +403,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
             } else if (signature == COPY_NONNULL_DESCRIPTOR) {
                 //这三个条件同时满足时 可以确保栈顶是primitive类型 那么直接swap就行 否则要考虑一系列处理
                 if(useConverter || customReader!=null ||!TypeUtils.isPrimitive(getterReturnType)){
-                    codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
+                    codeEmitter.loadLocal(targetLocal)//先压入栈 用于调用setter
 
                     if (useConverter) {
                         invokeReadAndConvert()
@@ -432,7 +437,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                 if (TypeUtils.isPrimitive(setterArgType)) {
                     continue
                 } else {
-                    codeEmitter.load_local(targetLocal)//先压入栈 用于调用setter
+                    codeEmitter.loadLocal(targetLocal)//先压入栈 用于调用setter
 
                     if (useConverter) {
                         invokeReadAndConvert()
@@ -446,7 +451,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     ///此时栈元素为[target,currentValue]///
 
                     //读取target中的属性值 这个值执行完if后就没用了 不需要dup
-                    codeEmitter.load_local(targetLocal)
+                    codeEmitter.loadLocal(targetLocal)
                     codeEmitter.invoke(targetGetterMethodInfo)
                     val skip = codeEmitter.make_label()
                     val end = codeEmitter.make_label()
@@ -467,7 +472,28 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
         }
 
+
         codeEmitter.visitLabel(methodEndLabel)
+
+        //这里必须放到这里再写 因为里面的解析对Label的使用有问题 如果在visitLabel前调用 会导致出错
+        //理论上它必须先检测label是否有被访问过 即Label.FLAG_RESOLVED标志。但是这里面直接读取offset了 所以必须放在后面
+
+        //函数参数名 这里1和2是试出来的。。。 因为要经过remap
+        codeEmitter.visitLocalVariable("target",Type.getType(Object::class.java).descriptor,
+            null,
+            localVariableStartLabel,methodEndLabel,2)
+        codeEmitter.visitLocalVariable("src",Type.getType(Object::class.java).descriptor,
+            null,
+            localVariableStartLabel,methodEndLabel,1)
+
+
+        codeEmitter.visitLocalVariable("copy_target",targetLocal.type.descriptor,
+            null,
+            localVariableStartLabel,methodEndLabel,targetLocal.index)
+        codeEmitter.visitLocalVariable("copy_source",sourceLocal.type.descriptor,
+            null,
+            localVariableStartLabel,methodEndLabel,sourceLocal.index)
+
         codeEmitter.return_value()
         codeEmitter.end_method()
     }
