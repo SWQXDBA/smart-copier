@@ -20,8 +20,7 @@ class CopyConfig(
     var propertyValueConverterProviders: MutableList<PropertyValueConverterProvider>? = null,
     var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
     var propertyValueReaderProvider: CustomPropertyReaderProvider? = null,
-    var typeConverterProviders: MutableList<TypeConverterProvider>? = mutableListOf(),
-    var allowPrimitiveWrapperAutoCast: Boolean = true
+    var typeConverterProviders: MutableList<TypeConverterProvider>? = mutableListOf()
 
 ) {
 

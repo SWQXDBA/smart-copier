@@ -52,7 +52,7 @@ class PrimitiveCastTest {
 
     @Test
     fun primitiveWrapperAutoCast() {
-        smartCopier.defaultConfig = CopyConfig(allowPrimitiveWrapperAutoCast = true)
+        smartCopier.defaultConfig = CopyConfig()
         smartCopier.debugMode = true
         smartCopier.debugOutPutDir = "./degg"
         //参考基础类型/非基础类型之间是否兼容

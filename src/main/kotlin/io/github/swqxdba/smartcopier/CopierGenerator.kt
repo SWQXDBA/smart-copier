@@ -254,13 +254,13 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
             val useConverter = converterField != null
             //如果类型不兼容 且不适用converter 则忽略该属性
-            if (!writer.parameterTypes[0].isAssignableFrom(reader.returnType)) {
+
+            if (!InternalUtil.canAssignableFrom(reader.genericReturnType,writer.genericParameterTypes[0])) {
                 //不允许自动拆包装 且不使用转换器
-                if(config?.allowPrimitiveWrapperAutoCast != true){
+                if(!useConverter){
                     if (!useConverter) {
                         continue
                     }
-
 
                 }else  if(javaObjectClass(writer.parameterTypes[0]) != javaObjectClass(reader.returnType)) {
                     //允许拆包装 但拆包装不兼容 且不使用转换器
@@ -268,9 +268,6 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                         continue
                     }
                 }
-
-
-
             }
 
 
