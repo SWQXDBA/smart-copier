@@ -43,4 +43,6 @@ class CollectionTest {
         smartCopier.copy(data1,data2)
         assert(data2.list[0]==1)
     }
+
+
 }

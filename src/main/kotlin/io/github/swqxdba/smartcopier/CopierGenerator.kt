@@ -14,31 +14,29 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 
-internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class<*>, config0: CopyConfig? = null,val smartCopier: SmartCopier) {
+internal class CopierGenerator(
+    val sourceClass: Class<*>,
+    val targetClass: Class<*>,
+    config0: CopyConfig? = null,
+    val smartCopier: SmartCopier
+) {
 
     var config: CopyConfig? = config0
 
     val generateContext = FieldContext()
 
-    companion object {
-        val defineClassMethod = ClassLoader::class.java.getDeclaredMethod(
-            "defineClass",
-            String::class.java,
-            ByteArray::class.java,
-            Int::class.java,
-            Int::class.java
-        )
-    }
 
-    private fun getClassLoader(): ClassLoader {
-        return javaClass.getClassLoader() ?: Thread.currentThread().getContextClassLoader()
-        ?: throw RuntimeException("classLoader not found")
+    open class MyClassLoader : ClassLoader() {
+        fun define(name: String, bytes: ByteArray): Class<*> {
+            return defineClass(name, bytes, 0, bytes.size)
+        }
+
+        companion object INSTANCE : MyClassLoader()
     }
 
     private fun defineClass(name: String, bytes: ByteArray): Class<*> {
-        val classLoader = getClassLoader()
-        defineClassMethod.isAccessible = true
-        return defineClassMethod(classLoader, name, bytes, 0, bytes.size) as Class<*>
+        val myClassLoader: MyClassLoader = MyClassLoader.INSTANCE
+        return myClassLoader.define(name, bytes)
     }
 
     val methodMapper: MutableMap<Method, Method>
@@ -98,7 +96,13 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         val sourceClassName = sourceClass.name
         val targetClassName = targetClass.name
         val className =
-            ("SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${copyConfig?.let { System.identityHashCode(copyConfig) } ?: "default"}_" +
+            ("SmartCopierImpl_${sourceClassName}_to_${targetClassName}_${
+                copyConfig?.let {
+                    System.identityHashCode(
+                        copyConfig
+                    )
+                } ?: "default"
+            }_" +
                     "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClassName)}").replace(
                 ".",
                 "_"
@@ -231,38 +235,46 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
             val converterName = "${targetProperty.name}Converter"
             //处理转换器converter
-            var converterField = config?.findPropertyValueConverter(     reader,
+            var converterField = config?.findPropertyValueConverter(
+                reader,
                 writer,
                 sourceClass,
                 targetClass,
-                copyMethodType)?.let {
-                    generateContext.addValueConverter(converterName,it,ce)
+                copyMethodType
+            )?.let {
+                generateContext.addValueConverter(converterName, it, ce)
             }
             //当没有属性转换器 且类型不兼容时 尝试查找类型转换器
-            if (converterField == null && !InternalUtil.canAssignableFrom( reader.genericReturnType,   writer.genericParameterTypes[0])) {
+            if (converterField == null && !InternalUtil.canAssignableFrom(
+                    reader.genericReturnType,
+                    writer.genericParameterTypes[0]
+                )
+            ) {
                 converterField = config?.findTypeConverter(
                     reader.genericReturnType,
                     writer.genericParameterTypes[0],
-                )?.let { typeConverter -> generateContext.addValueConverter(converterName,object: PropertyValueConverter {
-                    override fun convert(oldValue: Any?): Any? {
-                       return typeConverter.doConvert(oldValue)
-                    }
+                )?.let { typeConverter ->
+                    generateContext.addValueConverter(converterName, object : PropertyValueConverter {
+                        override fun convert(oldValue: Any?): Any? {
+                            return typeConverter.doConvert(oldValue)
+                        }
 
-                }, ce) }
+                    }, ce)
+                }
             }
 
 
             val useConverter = converterField != null
             //如果类型不兼容 且不适用converter 则忽略该属性
 
-            if (!InternalUtil.canAssignableFrom(reader.genericReturnType,writer.genericParameterTypes[0])) {
+            if (!InternalUtil.canAssignableFrom(reader.genericReturnType, writer.genericParameterTypes[0])) {
                 //不允许自动拆包装 且不使用转换器
-                if(!useConverter){
+                if (!useConverter) {
                     if (!useConverter) {
                         continue
                     }
 
-                }else  if(javaObjectClass(writer.parameterTypes[0]) != javaObjectClass(reader.returnType)) {
+                } else if (javaObjectClass(writer.parameterTypes[0]) != javaObjectClass(reader.returnType)) {
                     //允许拆包装 但拆包装不兼容 且不使用转换器
                     if (!useConverter) {
                         continue
@@ -399,7 +411,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
 
             } else if (signature == COPY_NONNULL_DESCRIPTOR) {
                 //这三个条件同时满足时 可以确保栈顶是primitive类型 那么直接swap就行 否则要考虑一系列处理
-                if(useConverter || customReader!=null ||!TypeUtils.isPrimitive(getterReturnType)){
+                if (useConverter || customReader != null || !TypeUtils.isPrimitive(getterReturnType)) {
                     codeEmitter.loadLocal(targetLocal)//先压入栈 用于调用setter
 
                     if (useConverter) {
@@ -424,7 +436,7 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
                     codeEmitter.popForType(setterArgType)//扔掉currentValue
                     codeEmitter.pop()//扔掉target
                     codeEmitter.visitLabel(end)
-                }else {
+                } else {
                     //primitive时不考虑default value
                     doSwap()
                 }
@@ -476,20 +488,28 @@ internal class CopierGenerator(val sourceClass: Class<*>, val targetClass: Class
         //理论上它必须先检测label是否有被访问过 即Label.FLAG_RESOLVED标志。但是这里面直接读取offset了 所以必须放在后面
 
         //函数参数名 这里1和2是试出来的。。。 因为要经过remap
-        codeEmitter.visitLocalVariable("target",Type.getType(Object::class.java).descriptor,
+        codeEmitter.visitLocalVariable(
+            "target", Type.getType(Object::class.java).descriptor,
             null,
-            localVariableStartLabel,methodEndLabel,2)
-        codeEmitter.visitLocalVariable("src",Type.getType(Object::class.java).descriptor,
+            localVariableStartLabel, methodEndLabel, 2
+        )
+        codeEmitter.visitLocalVariable(
+            "src", Type.getType(Object::class.java).descriptor,
             null,
-            localVariableStartLabel,methodEndLabel,1)
+            localVariableStartLabel, methodEndLabel, 1
+        )
 
 
-        codeEmitter.visitLocalVariable("copy_target",targetLocal.type.descriptor,
+        codeEmitter.visitLocalVariable(
+            "copy_target", targetLocal.type.descriptor,
             null,
-            localVariableStartLabel,methodEndLabel,targetLocal.index)
-        codeEmitter.visitLocalVariable("copy_source",sourceLocal.type.descriptor,
+            localVariableStartLabel, methodEndLabel, targetLocal.index
+        )
+        codeEmitter.visitLocalVariable(
+            "copy_source", sourceLocal.type.descriptor,
             null,
-            localVariableStartLabel,methodEndLabel,sourceLocal.index)
+            localVariableStartLabel, methodEndLabel, sourceLocal.index
+        )
 
         codeEmitter.return_value()
         codeEmitter.end_method()
