@@ -31,11 +31,11 @@ internal class CopierGenerator(
             return defineClass(name, bytes, 0, bytes.size)
         }
 
-        companion object INSTANCE : MyClassLoader()
+        companion object : MyClassLoader()
     }
 
     private fun defineClass(name: String, bytes: ByteArray): Class<*> {
-        val myClassLoader: MyClassLoader = MyClassLoader.INSTANCE
+        val myClassLoader: MyClassLoader = MyClassLoader.Companion
         return myClassLoader.define(name, bytes)
     }
 
