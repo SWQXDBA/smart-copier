@@ -39,9 +39,12 @@ internal object InternalUtil {
             if (methodName.startsWith("get") && methodName.length > 3 && method.parameterCount == 0) {
                 val propertyName = methodName.substring(3).replaceFirstChar { it.lowercase(Locale.getDefault()) }
                 getters[propertyName] = method
-            } else if (methodName.startsWith("is") && methodName.length > 2 && method.parameterCount == 0) {
+            } else if (methodName.startsWith("is") && methodName.length > 2 && method.parameterCount == 0 && method.returnType == Boolean::class.javaPrimitiveType) {
                 val propertyName = methodName.substring(2).replaceFirstChar { it.lowercase(Locale.getDefault()) }
                 getters[propertyName] = method
+            } else if (methodName.startsWith("is") && methodName.length > 2 && method.parameterCount == 1 && method.parameterTypes[0] == Boolean::class.javaPrimitiveType) {
+                val propertyName = methodName.substring(2).replaceFirstChar { it.lowercase(Locale.getDefault()) }
+                setters[propertyName] = method
             } else if (methodName.startsWith("set") && methodName.length > 3 && method.parameterCount == 1) {
                 val propertyName = methodName.substring(3).replaceFirstChar { it.lowercase(Locale.getDefault()) }
                 setters[propertyName] = method

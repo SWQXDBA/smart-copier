@@ -2,7 +2,7 @@ package test
 
 import io.github.swqxdba.smartcopier.CopyConfig
 import io.github.swqxdba.smartcopier.SmartCopier
-import io.github.swqxdba.smartcopier.propertyreader.CustomPropertyReaderProvider
+import io.github.swqxdba.smartcopier.propertyreader. CustomPropertyReaderProvider
 import io.github.swqxdba.smartcopier.propertyreader.PropertyValueReader
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -20,7 +20,7 @@ class CustomPropertyReaderTest {
         val target = Data(0, 0)
         var trigger = 0
         val provider: CustomPropertyReaderProvider = object : CustomPropertyReaderProvider {
-            override fun tryGerReader(getterMethod: Method): PropertyValueReader? {
+            override fun tryGetReader(getterMethod: Method): PropertyValueReader? {
                 if (getterMethod.name.lowercase().contains("a")) {
                     return object : PropertyValueReader {
                         override fun readValue(src: Any?): Any? {

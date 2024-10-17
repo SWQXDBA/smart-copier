@@ -284,7 +284,7 @@ internal class CopierGenerator(
 
 
             //自定义reader方法
-            val customReader = config?.propertyValueReaderProvider?.tryGerReader(reader)
+            val customReader = config?.propertyValueReaderProvider?.tryGetReader(reader)
             val customReaderFieldName = "custom_reader_${reader.name}"
             if (customReader != null) {
                 ce.declare_field(
