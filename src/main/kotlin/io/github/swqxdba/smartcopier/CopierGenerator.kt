@@ -103,7 +103,7 @@ internal class CopierGenerator(
                     )
                 } ?: "default"
             }_" +
-                    "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClassName)}").replace(
+                    "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClass)}_${System.identityHashCode(smartCopier)}").replace(
                 ".",
                 "_"
             )
