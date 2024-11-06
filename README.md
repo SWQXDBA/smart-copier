@@ -1,13 +1,12 @@
 # Smart Copier
+SmartCopier是一个用于高效处理Bean拷贝、转换的工具。
 
-运行时生成bean copier代码的高效率工具。    
+使用cglib asm库在运行时生成代码，兼顾运行效率和开发效率。    
+其性能是BeanUtil.copyProperties的200-1000倍，等同于硬编码。    
 
-使用cglib asm库在运行时生成代码，兼顾运行效率和开发效率。  
-其性能是BeanUtil的200-1000倍，等同于硬编码。  
 比cglib的beanCopier提供了额外的设置功能，如默认值，是否用null覆盖，是否忽视null属性等，以及设置特殊的属性对应关系等等。  
 
-此外，提供更加灵活的转换器，允许只对部分属性进行转换，且不会对其他属性带来额外开销。  
-此外，允许提供默认值。  
+此外，提供更加灵活的转换器，允许只对部分属性进行转换，且不会对其他属性带来额外开销。
 
 
 # 实现原理：
@@ -55,425 +54,226 @@ maven
 ## 2 使用
 
 ```java
-import io.github.swqxdba.smartcopier.SmartCopier;
 
-@Data
-class Person {
-
-    private String name;
-
-    private int age;
+static SmartCopier smartCopier = new SmartCopier();
+public static void main(String[] args) {
+    PersonDto personDto; //...
+    Person person; //...
+    smartCopier.copy(person, personDto);
 }
-
-@Data
-class PersonDto {
-
-    private String name;
-
-    private int age;
-}
-
-    public static void main(String[] args) {
-        PersonDto personDto; //...
-        Person person; //...
-        SmartCopier.copy(person, personDto);
-    }
 ```
-# 方法介绍
 
+# 详细介绍
+## Copier
 
-## copy
-copy方法会用src中的属性给target中的属性直接赋值
-
-## copyNonNullProperties
-用src中不为null的属性给target中的属性赋值,类似于部分更新
-
-## merge
-用当target中的属性为null时，才用src中的属性进行赋值。可以理解为合并对象
-
-
-# 配置类(CopyConfig)
-配置类用来在生成Copier实例时，对生成代码的逻辑进行定制。  
-
-注意：CopyConfig对象一旦被用于生成Copier实例，其可能不会被回收，请不要每次都创建新的CopyConfig！！！
-
-注意：CopyConfig中提供的各种接口实现应该是线程安全的!!!
+Copier是一个接口，定义了三个方法：
 
 ```kotlin
-/**
- * 默认值提供者，当源头中数据为null时 将设置defaultValueProvider提供的默认值,defaultValueProvider对每个属性只会被调用一次
- * 注意 如果属性类型是primitive的 则永远不会使用默认值!
- */
-interface PropertyValueProvider {
+interface Copier {
+    /**
+     * 强制对发现的所有属性进行拷贝
+     * @param src
+     * @param target
+     */
+    fun copy(src: Any?, target: Any?)
 
     /**
-     *
-     * 用于提供默认值 如果提供的默认值不为null 则会被赋值给目标类的该属性
-     *
-     * 对于copy,copyNonNullProperties和merge方法 可以提供不同的默认值，不会互相影响,
-     *
-     * 比如在copyNonNullProperties时可以全部提供null表示不使用默认值。
-     *
-     * @param targetSetter 目标类该属性的setter方法
-     * @param sourceGetter 源类该属性的getter方法
-     * @param sourceClass 源类型
-     * @param sourceClass 目标类型
-     * @param copyMethodType 拷贝方法
-     * @return 提供的默认值,可以是null 但是必须与targetSetter的参数兼容(可以赋值给该类型的变量)
+     * 当源属性不为null时进行拷贝
+     * 如果源属性为null 但是经过了转换后的目标属性不为null 也会执行更新。
+     * 如果源属性为null 但是提供了一个非null的默认值，也可能会执行更新
+     * @param src
+     * @param target
      */
-    fun provide(
-        sourceGetter: Method,
-        targetSetter: Method,
-        sourceClass: Class<*>,
-        targetClass: Class<*>,
-        copyMethodType: CopyMethodType
-    ): Any?
-}
-
-interface PropertyValueConverter {
-    /**
-     * 是否对该属性使用拦截
-     * @param targetSetter 目标类该属性的setter方法
-     * @param sourceGetter 源类该属性的getter方法
-     * @param sourceClass 源类型
-     * @param sourceClass 目标类型
-     * @param copyMethodType 拷贝方法
-     * @return 是否对该属性使用拦截
-     */
-    fun shouldIntercept(
-        sourceGetter: Method,
-        targetSetter: Method,
-        sourceClass: Class<*>,
-        targetClass: Class<*>,
-        copyMethodType: CopyMethodType
-    ): Boolean
+    fun copyNonNullProperties(src: Any?, target: Any?)
 
     /**
-     * 转换值
-     * @param oldValue 原始值 可能为null
-     * @return 结果值 如果属性的类型为primitive类型 则不允许返回null
+     * 合并两个对象，只对目标对象中为null的属性会被更新
+     * 如果某个属性为primitive的 则不会再被merge更新
+     * @param src
+     * @param target
      */
-    fun convert(oldValue: Any?): Any?
-}
-
-/**
- * 用于客制化属性之间的对应关系
- */
-interface PropertyMapperRuleCustomizer {
-
-    /**
-     * 客制化映射规则，会对返回的规则进行检测，如果map.key不是属于sourceClass的方法，或者map.key不是属于targetClass的方法会抛出异常。
-     * @param 源类型
-     * @param 目标类型
-     * @param currentMapper 通过默认规则解析出来的映射关系
-     * @return 新的映射关系
-     */
-    fun mapperRule(
-        sourceClass: Class<*>,
-        targetClass: Class<*>,
-        currentMapper: Map<Method, Method>
-    ): Map<Method, Method>
-}
-
-
-/**
- * @param defaultValueProvider 默认值提供者
- * @param propertyValueConverters 属性值转换器
- * @param propertyMapperRuleCustomizer 用于客制化属性的对应关系
- * @param propertyValueReaderProvider 用于客制化属性的读取方式
- * @param allowPrimitiveWrapperAutoCast 是否允许自动拆箱和装箱
- */
-class CopyConfig(
-    var defaultValueProvider: PropertyValueProvider? = null,
-    var propertyValueConverters: MutableList<PropertyValueConverter>? = null,
-    var propertyMapperRuleCustomizer: PropertyMapperRuleCustomizer? = null,
-    var propertyValueReaderProvider: CustomPropertyReaderProvider? = null,
-    var allowPrimitiveWrapperAutoCast: Boolean = true
-
-)
-
-```
-# CopyConfig
-CopyConfig提供了五个参数(函数式接口)，当不为null时生效。
-
-# PropertyValueProvider
-
-用于生成默认值，当从src中执行getter方法获取的值为null时，改为使用PropertyValueProvider提供的值。    
-
-默认值允许为null，如果给了一个非null的默认值，那么则当成原属性不为null处理。 
-
->注意 PropertyValueProvider只在生成Copier实例的时候执行，不会在每次拷贝的时候被执行，
-> 执行结果会被作为成员变量存在Copier实例中。
-> 
-
-
-
-# PropertyValueConverter 
-用于值转换 可以在读取src中的属性后进行一层转换再给target的属性赋值。  
-
-如果一个null值经过PropertyValueConverter转换后不再为null，那么则当成原属性不为null处理。  
-
-> 在生成Copier实例的时候，会通过shouldIntercept来判断拷贝过程中要不要对这个属性应用convert，  
-> 如果判断要对该属性应用convert，则每次拷贝时该属性都会被应用PropertyValueConverter。
-> 
-> 即shouldIntercept方法在只在生成Copier实例时调用,PropertyValueConverter在每次拷贝时调用
-> 
-
-
-# PropertyMapperRuleCustomizer 
-用于定制属性的映射关系，如把sex属性映射到sexStr属性。   
-
-currentMapper的key是源属性的getter方法，   
-currentMapper的value是目标属性的setter方法。  
-要求返回的新的map也应该遵循这个规则。并且保证getter返回值和setter参数的类型是兼容的。(比如不能把Integer赋值给String)
-
-> PropertyMapperRuleCustomizer只会在Copier实例生成时被调用，后续拷贝中属性的对应关系是确定的，不会有额外开销。  
-
-# PropertyValueReader
-属性值读取器  
-用于自定义如何读取属性的值  
-该功能可以替代默认值和转换器，并且可以与他们同时使用。但是理论上如果使用了属性值读取器，那么可以在其中直接处理默认值和转换逻辑。  
-
-# allowPrimitiveWrapperAutoCast
-允许自动拆箱和装箱  
-考虑以下代码:
-```java
-@Data
-class Data1{
-    int a;
-}
-@Data
-class Data2{
-    Integer a;
+    fun merge(src: Any?, target: Any?)
 }
 ```
-在这两个类型中，a属性的getter方法返回值是int，而setter方法接收参数是Integer。  
-实际上这是两种不兼容的类型，为了支持其的取值和赋值，需要进行自动拆箱和装箱。  
 
-如果设置了allowPrimitiveWrapperAutoCast=false，  
-那么在拷贝时，这个a属性会直接被认为是不兼容的属性，不会被拷贝。
+SmartCopier会在运行时，为要拷贝的类型生成对应的Copier实现类。 
 
-
-
-#  集合/数组容器的智能兼容处理
-在探测属性时 有时候会遇到带泛型的集合，比如:
-```java
-class Person{
-    List<Order> orders1;
-    List<Order> orders2;
-}
-class PersonDto{
-    Set<OrderDto> orders;
-    List<OrderDto> orders2;
-}
-
-```
-对于上述两个类型中的orders orders2属性，其中的集合类型或许不同，也或者集合类型兼容，但是集合元素类型不同。  
-
-SmartCopier在遇到集合属性时 会探测集合的具体泛型，避免造成堆污染。简而言之：当集合中元素类型兼容时，将直接拷贝集合元素，
-当集合类型不兼容时，将会尝试对其中的每个元素进行转换。  
-这个自动的转换逻辑请见后面的BeanConvertProvider配置。  
-
-此外，SmartCopier 支持对集合和数组进行处理，前提是元素类型必须兼容   
-(判断方式为class1.isAssignableFrom(class2))  
-
-比如 可以将List&lt;String&gt;转换到  
-String[]   
-或者Set&lt;String&gt;    
-或者HashSet&lt;String&gt;
-
-
-如果目标容器类型(setter方法参数类型)为具体的实现类 而不是接口 (比如是LinkedList而不是List),  
-那么会尝试使用实现类的newInstance去直接构造实现类。
-
-如果目标容器类型为接口或者抽象类型，但是能被赋值为ArrayList 或者HashSet 则会被赋值为ArrayList或者HashSet
-
-此外,还支持元素类型为基本类型的集合/数组 与包装类型的集合转换处理,  
-比如 int[] 转换到 List&lt;Integer&gt; 或者Integer[]
-
-
-### 不支持的转换: (不支持转换时 该属性会被忽略)
-
-List&lt;UserEntity&gt; 到List&lt;UserDto&gt; 因为元素类型不兼容,
-且不知道如何进行元素的转换(如果强行赋值会造成堆污染) ，如果想支持 可以通过配置BeanConvertProvider
-
-### 注意： 
-如果目标类型为primitive的数组 但是来源元素中有null 那么目标数组中的对应元素会是默认的初始值 比如:
-[null,123]->[0,123]
-
-# debug模式
-如果想查看生成的copy方法的方法源码，或者是生成的class字节码:
-```
-SmartCopier.setDebugGeneratedClassFileDir("your/path/");
-SmartCopier.setDebug(true);
-
-```
-此时生成的字节码会被输出成class文件，到指定的目录中。
-
-# 注意事项
-
-##  为了在高版本java中正常使用 请在jvm参数中允许对其他包的反射
-
-## 在生成Copier时 会根据传入的不同的CopierConfig生成不同的Copier类
-
-请确保CopierConfig重写了合适的hashCode方法,或者使用同一个CopierConfig实例。
-
-## 性能优化
-SmartCopier中有静态的copy方法可以调用,但是如果需要更高的性能,请先获取getCopier返回的Copieer实例,
-避免每次调用静态方法时反复从读取缓存.
-
-性能较低的做法
+可以通过SmartCopier.getCopier获取到内部生成的Copier。
+多次调用SmartCopier.getCopier会返回同一个Copier对象。Copier是线程安全的。
 
 ```java
+
 import io.github.swqxdba.smartcopier.SmartCopier;
 
-class ProductConverter {
+static SmartCopier smartCopier = new SmartCopier();
+static Copier copier = smartCopier.getCopier(A.class,B.class);
 
-    public void copy(ProductDto dto, Product entity) {
-        SmartCopier.copy(dto, entity);
-    }
+public static void copy(A a , B b) {
+    copier.copyNonNullProperties(a,b);
 }
 
-
 ```
-更高性能的写法
+
+## 配置类(CopyConfig)
+配置类用来在生成Copier实例时，对生成代码的逻辑进行定制。  
+你可以为SmartCopier设置默认的CopyConfig，也可以在每次getCopier时传入CopyConfig。
 
 ```java
+void example(){
+    SmartCopier smartCopier = new SmartCopier();
+    CopyConfig config = //xxx
+    smartCopier.setDefaultConfig(config);
+    smartCopier.getCopier(A.class,B.class);
+}
+
+void example(){
+    SmartCopier smartCopier = new SmartCopier();
+    CopyConfig config = //xxx
+    smartCopier.getCopier(A.class,B.class,config);
+}
+```
+请注意，使用不同的config时生成的Copier并不一样  
+以下三个Copier对象是不同的。
+```java
+void example(){
+    SmartCopier smartCopier = new SmartCopier();
+    CopyConfig config1 = //xxx
+    CopyConfig config2 = //xxx
+    Copier copier1 = smartCopier.getCopier(A.class,B.class,config);
+    Copier copier2 = smartCopier.getCopier(A.class,B.class,config2);
+    Copier copier3 = smartCopier.getCopier(A.class,B.class);
+}
+```
+
+## SmartCopier类
+SmartCopier类是一个Copier的工厂入口，负责生成Copier。不同的SmartCopier生成的Copier不一样。    
+
+通常情况下，一个应用只要一个SmartCopier实例即可。    
+
+### 让SmartCopier类输出生成的类
+你可以让SmartCopier把运行时生成的Copier实例的字节码输出到指定的路径中。  
+
+1 启动debug模式  
+smartCopier.setDebugMode(true);  
+
+2 设置输出的class文件路径  
+smartCopier.setDebugOutPutDir("./");  
+
+3 触发copier生成  
+smartCopier.getCopier(A.class,B.class);
+
+然后你就能在那个路径下看到生成的.class文件，你可以用idea直接打开它来查看其反编译的java代码。  
+
+### SmartCopier类快捷方法
+你可以直接通过SmartCopier实例执行常用的拷贝方法，而无需获取内部的Copier实例。  
+
+```java
+void example(A a,B b){
+    SmartCopier smartCopier = new SmartCopier();
+    smartCopier.copy(a,b);
+    //等同于
+    Copier copier = smartCopier.getCopier(A.class,B.class);
+    copier.copy(a,b);
+}
+
+List<B> example2(List<A> list){
+    SmartCopier smartCopier = new SmartCopier();
+    return smartCopier.copyToList(list,B.class);
+}
+
+```
+在内部，会通过一个ConcurrentHashMap来获取生成的Copier实例执行拷贝。
+
+## Bean
+SmartCopier是Bean属性拷贝和转换的工具，依靠Getter、Setter来寻找类中的属性。  
+除了普通的set get方法外，还会识别出带有返回值的set方法。
+
+```java
+A setName(String name){
+    this.name=name;
+    return this;
+}
+```
+
+## 类型转换
+在拷贝/转换的过程中，会遇到不一样类型的同名属性，比如:
+
+```java
+class Dto{
+    List<SubDto> children;
+}
+
+class Entity{
+    List<SubEntity> children;
+}
+```
+在一些BeanUtil中，只使用class.isAssignableFrom来判断是否能赋值。 但是这么判断不会判断集合元素的内部类型，会造成堆污染。  
+SmartCopier会执行递归检测，以保证其中的泛型实参也能够互相兼容。如果不兼容，则需要提供转换器进行转换处理，否则不会对该属性进行转换。  
+
+在上面的例子中，需要提供一个类型转换器，提供SubDto和SubEntity的转换逻辑。  
+你可以通过CopyConfig来配置你的转换器。
+```java
+
+CopyConfig config = new CopyConfig();
+config.addConverter(yourTypeConverterProvider);
+
+```
+### TypeConverterProvider
+TypeConverterProvider是一个转换器工厂，用于生成转换器实例。每个转换器负责从一个类型到另一个类型的转换。 
+
+而TypeConverterProvider负责生成这些转换器。这么设计的好处是，你可以在转换器对象内部保存一些状态。  
+
+一个常见的类型转换器是PackageBasedTypeConverterProvider，  它使用一个SmartCopier来对某个包名下的所有类型进行转换。  
+
+你可以把项目所在的包名传进去，让其转换项目中的各种类型。  
+
+```java
+import io.github.swqxdba.smartcopier.CopyConfig;
 import io.github.swqxdba.smartcopier.SmartCopier;
 
-class ProductConverter {
-
-    Copier copier = SmartCopier.getCopier(ProductDto.class, Product.class);
-
-    public void copy(ProductDto dto, Product entity) {
-        copier.copy(dto, entity);
-    }
+@Bean
+public SmartCopier smartCopier() {
+    SmartCopier smartCopier = new SmartCopier();
+    CopyConfig copyConfig = new CopyConfig();
+    copyConfig.addConverter(new PackageBasedTypeConverterProvider("com.company.project"),smartCopier);
+    smartCopier.setDefaultConfig(copyConfig);
+    return smartCopier;
 }
 
 
 ```
 
-## 线程安全
-SmartCopier本身是线程安全的,包括生成Copier类的过程，以及执行copy的过程。  
-但是 如果CopyConfig中传入的PropertyValueConverter等依赖不是线程安全的，那么可能会有线程安全问题。  
+### 拆装箱
 
-## 内存泄漏注意
-被传入SmartCopier的CopyConfig对象在程序生命周期中都不会被回收
+SmartCopier默认使用BoxTypeConverterProvider进行自动拆装箱，在拆箱时，如果遇到为null的包装类，会返回默认值。
 
-# 处理不兼容的类型 beanConvertProvider
+## 集合与数组
+集合和数组的转换不好处理，SmartCopier内置了一个ContainerTypeConverterProvider用于处理集合与数组的相关转换。  
+你可以在CopyConfig中移除掉这个内置的转换器，来取消对集合类型的自动转换。  
 
-在属性的拷贝和转换时，SmartCopier默认能够处理那些兼容的类型，但是有时候我们需要对不兼容的类型进行拷贝操作，见以下例子:
-```java
-class User{}
-class UserDto{}
-class Order{
-    private User user;
-}
-class OrderDto{
-    private UserDto user;
-}
-```
-此时我们想对Order和OrderDto进行拷贝，但是由于User和UserDto不兼容，所以默认情况下是不会进行拷贝的。  
-
-
-一个简单的想法是：如果遇到项目中定义的类 则当做bean处理，自动调用SmartCopier来拷贝一个副本。
-
-请使用SmartCopier.beanConvertProvider来设置全局的转换器，比如将一个bean转换成另一个bean等等。  
-或者进行map 和 bean之间的转换。
-
-以下是一个简单的配置示例，用于将在这个过程中对遇到的com.xxx包中的类进行自动转换：  
+集合自动转换指的是类似于以下的几种类型间的互相转换，不包括Map的转换。  
 ```java
 
-    SmartCopier.setBeanConvertProvider(new BeanConvertProvider() {
-        Map<String, BeanConverter> cache = new ConcurrentHashMap<>();
-
-        @Nullable
-        @Override
-        public BeanConverter tryGetConverter(@NotNull Class<?> aClass, @NotNull Class<?> aClass1) {
-            String key = aClass.getName() + aClass1.getName();
-            String basePackage = "com.ly";
-            BeanConverter beanConverter = cache.get(key);
-            if (beanConverter != null) {
-                return beanConverter;
-            }
-            if (aClass.getPackage().getName().startsWith(basePackage) && aClass1.getPackage().getName().startsWith(basePackage)) {
-                return cache.computeIfAbsent(key, k -> new BeanConverter() {
-                    Copier copier;
-
-                    final Constructor<?> targetConstructor;
-
-                    {
-                        try {
-                            targetConstructor = aClass1.getConstructor();
-                            targetConstructor.setAccessible(true);
-                        } catch (NoSuchMethodException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                    }
-
-                    @NotNull
-                    @Override
-                    public Object doConvert(@NotNull Object o) {
-                        Copier copier1 = copier;
-                        if (copier1 == null) {
-                            synchronized (this) {
-                                if (this.copier == null) {
-                                    this.copier = SmartCopier.getCopier(aClass, aClass1);
-                                }
-                            }
-                            copier1 = copier;
-                        }
-                        try {
-                            Object instance = targetConstructor.newInstance();
-                            copier1.copy(o, instance);
-                            return instance;
-                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
-            }
-            return null;
-        }
-    });
-
-
-```
-BeanConvertProvider中的tryGetConverter方法用于探测能否找到对应的转换器，如果返回null 则表示无法进行转换。   
-这个探测只会在生成具体的Copier类的时候被调用，不会在每次copy调用的时候被调用，因此不做缓存也可以。  
-
-## 处理Map到普通对象的转换
-同上个例子
-```java
-class User{}
-class UserDto{}
-class Order{
-    private Map user;
+class A{
+    List<Integer> list;
 }
-class OrderDto{
-    private UserDto user;
+class B{
+    Set<Integer> list;
+}
+class C{
+    Integer[] list;
+}
+class D{
+    int[] list;
+}
+class D{
+    Collection<Integer> list;
 }
 ```
-假设你想将遇到的Map转换到bean 或者反过来，也只需要在SmartCopier.setBeanConvertProvider提供的BeanConvertProvider中支持即可。
 
-## 递归调用
-在定义beanConvertProvider时 我们可能会遇到递归的结构
-```java
-class Person{
-    Person p1;
-
-}
-class PersonDto{
-    PersonDto p1;
-}
 ```
-对于上述结构 当尝试将Person转换到PersonDto时 发现需要生成Person->PersonDto的copier  
-
-在生成Person->PersonDto的copier时 由于属性类型p1不兼容，调用了设置的beanConvertProvider。  
-
-接下来 beanConvertProvider中尝试生成一个为p1属性进行转换的Copier 这个Copier也是Person->PersonDto。  
-
-因此，在上述场景中，会在生成Copier的过程中需要生成相同功能的另一个Copier，造成死递归。  
-
-请放心，上述问题不会发生，SmartCopier使用了一个简单的二级缓存来解决这个问题，您可以放心地在生成Copier的过程中，通过beanConvertProvider去生成另一个Copier。  
+注意 当你想把一个List<Integer>转换到int[]，且前面的List中存在null元素时，相应的位置会是元素的默认值。  
+比如有 List<Integer> = [1,2,null,4]
+转换到int[]后会变成 [1,2,0,4]
+```
+> SmartCopier指的基础类型默认值，是基础类型数组元素的默认值，比如 (new int[1])[0]

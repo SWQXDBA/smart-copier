@@ -1,14 +1,10 @@
 package io.github.swqxdba.smartcopier
 
 
-import net.sf.cglib.beans.BeanCopier
 import net.sf.cglib.core.CodeEmitter
 import net.sf.cglib.core.Signature
 import java.lang.reflect.*
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
 
 internal object InternalUtil {
     fun getPropertyDescriptorMap(clazz: Class<*>): Map<String, PropertyDescriptor> {
