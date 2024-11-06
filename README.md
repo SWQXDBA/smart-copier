@@ -47,7 +47,7 @@ maven
 <dependency>
     <groupId>io.github.swqxdba</groupId>
     <artifactId>smart-copier</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.9</version>
 </dependency>
 ```
 
