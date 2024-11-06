@@ -57,7 +57,7 @@ class SmartCopier {
      */
     @JvmOverloads
     fun getCopier(sourceClass: Class<*>, targetClass: Class<*>, config: CopyConfig? = defaultConfig): Copier {
-        val hash = "" + sourceClass.hashCode() + targetClass.hashCode() + config.hashCode()
+        val hash = "" + sourceClass.hashCode() + targetClass.hashCode() + System.identityHashCode(config?:0)
         val localCache = localCache.get()
         val localCopier = localCache[hash]
         if (localCopier != null) {
@@ -84,7 +84,7 @@ class SmartCopier {
 
 
     @JvmOverloads
-    fun copy(src: Any?, target: Any?, config: CopyConfig? = null) {
+    fun copy(src: Any?, target: Any?, config: CopyConfig? = defaultConfig) {
         if (src == null || target == null) {
             return
         }

@@ -67,25 +67,4 @@ class CopyConfig(
         }
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is CopyConfig) return false
-
-        if (defaultValueProvider != other.defaultValueProvider) return false
-        if (propertyValueConverterProviders != other.propertyValueConverterProviders) return false
-        if (propertyMapperRuleCustomizer != other.propertyMapperRuleCustomizer) return false
-        if (propertyValueReaderProvider != other.propertyValueReaderProvider) return false
-        if (typeConverterProviders != other.typeConverterProviders) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = defaultValueProvider?.hashCode() ?: 0
-        result = 31 * result + (propertyValueConverterProviders?.hashCode() ?: 0)
-        result = 31 * result + (propertyMapperRuleCustomizer?.hashCode() ?: 0)
-        result = 31 * result + (propertyValueReaderProvider?.hashCode() ?: 0)
-        result = 31 * result + (typeConverterProviders?.hashCode() ?: 0)
-        return result
-    }
 }

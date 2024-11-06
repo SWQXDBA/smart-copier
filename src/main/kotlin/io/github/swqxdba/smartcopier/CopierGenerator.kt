@@ -17,11 +17,10 @@ import java.nio.file.Paths
 internal class CopierGenerator(
     val sourceClass: Class<*>,
     val targetClass: Class<*>,
-    config0: CopyConfig? = null,
+    var config: CopyConfig?,
     val smartCopier: SmartCopier
 ) {
 
-    var config: CopyConfig? = config0
 
     val generateContext = FieldContext()
 
@@ -102,11 +101,11 @@ internal class CopierGenerator(
                         copyConfig
                     )
                 } ?: "default"
-            }_" +
-                    "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClass)}_${System.identityHashCode(smartCopier)}").replace(
-                ".",
-                "_"
-            )
+            }_" + "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClass)}_${System.identityHashCode(smartCopier)}")
+                .replace(
+                    ".",
+                    "_"
+                )
         return className
     }
 
