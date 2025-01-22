@@ -25,17 +25,17 @@ internal class CopierGenerator(
     val generateContext = FieldContext()
 
 
-    open class MyClassLoader : ClassLoader() {
-        fun define(name: String, bytes: ByteArray): Class<*> {
-            return defineClass(name, bytes, 0, bytes.size)
-        }
-
-        companion object : MyClassLoader()
-    }
-
     private fun defineClass(name: String, bytes: ByteArray): Class<*> {
-        val myClassLoader: MyClassLoader = MyClassLoader.Companion
-        return myClassLoader.define(name, bytes)
+        val classLoader = Thread.currentThread().contextClassLoader
+        val method = ClassLoader::class.java.getDeclaredMethod(
+            "defineClass", *arrayOf<Class<*>>(
+                String::class.java,
+                ByteArray::class.java,
+                Int::class.java, Int::class.java
+            )
+        )
+        method.isAccessible = true
+        return method.invoke(classLoader, name, bytes, 0, bytes.size) as Class<*>
     }
 
     val methodMapper: MutableMap<Method, Method>
@@ -101,7 +101,11 @@ internal class CopierGenerator(
                         copyConfig
                     )
                 } ?: "default"
-            }_" + "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClass)}_${System.identityHashCode(smartCopier)}")
+            }_" + "${System.identityHashCode(sourceClass)}_${System.identityHashCode(targetClass)}_${
+                System.identityHashCode(
+                    smartCopier
+                )
+            }")
                 .replace(
                     ".",
                     "_"
@@ -111,6 +115,7 @@ internal class CopierGenerator(
 
 
     fun generateCopier(): Copier {
+
         val generateClass = generateClass()
         val copier = generateClass.newInstance() as Copier
         //给字段设置值
