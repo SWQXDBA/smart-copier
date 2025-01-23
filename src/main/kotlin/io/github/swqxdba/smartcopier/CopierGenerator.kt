@@ -8,6 +8,7 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import io.github.swqxdba.smartcopier.propertyreader.PropertyValueReader
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.lang.reflect.Method
 import java.nio.file.Files
@@ -21,21 +22,40 @@ internal class CopierGenerator(
     val smartCopier: SmartCopier
 ) {
 
+    val logger = LoggerFactory.getLogger(CopierGenerator::class.java)
 
     val generateContext = FieldContext()
 
+    object MyClassLoader : ClassLoader() {
+        val logger = LoggerFactory.getLogger(CopierGenerator::class.java)
+        init {
+            logger.info("parent class loader: " + MyClassLoader.parent)
+        }
+        fun define(name: String, bytes: ByteArray): Class<*> {
+            return defineClass(name, bytes,0, bytes.size)
+        }
+    }
 
     private fun defineClass(name: String, bytes: ByteArray): Class<*> {
-        val classLoader = Thread.currentThread().contextClassLoader
-        val method = ClassLoader::class.java.getDeclaredMethod(
-            "defineClass", *arrayOf<Class<*>>(
-                String::class.java,
-                ByteArray::class.java,
-                Int::class.java, Int::class.java
+        try {
+            return MyClassLoader.define(name, bytes)
+        }catch (e: Exception){
+            //try by reflect way
+            val classLoader = Thread.currentThread().contextClassLoader
+            val method = ClassLoader::class.java.getDeclaredMethod(
+                "defineClass", *arrayOf<Class<*>>(
+                    String::class.java,
+                    ByteArray::class.java,
+                    Int::class.java, Int::class.java
+                )
             )
-        )
-        method.isAccessible = true
-        return method.invoke(classLoader, name, bytes, 0, bytes.size) as Class<*>
+            try {
+                method.isAccessible = true
+            }catch (e: Exception){
+                logger.error("reflect method defineClass error, try to use '--add-opens java.base/java.lang=ALL-UNNAMED' Jvm option",e)
+            }
+            return method.invoke(classLoader, name, bytes, 0, bytes.size) as Class<*>
+        }
     }
 
     val methodMapper: MutableMap<Method, Method>
