@@ -1,13 +1,17 @@
 # Smart Copier
-SmartCopier是一个用于高效处理Bean拷贝、转换的工具。
+SmartCopier是一个用于高效处理Bean拷贝、转换的工具。支持复杂嵌套的同构或异构的类型结构。 
 
-使用cglib asm库在运行时生成代码，兼顾运行效率和开发效率。    
+其希望达成的效果类似于Jackson的 objectMapper.convertValue(src,targetType),即类似于把一个对象转换成json，然后反序列化到另一个类型那样通用。  
+
+
+使用cglib asm库在运行时生成转换对象的字节码，兼顾运行效率和开发效率。    
 其性能是BeanUtil.copyProperties的200-1000倍，等同于硬编码。    
 
 比cglib的beanCopier提供了额外的设置功能，如默认值，是否用null覆盖，是否忽视null属性等，以及设置特殊的属性对应关系等等。  
 
 此外，提供更加灵活的转换器，允许只对部分属性进行转换，且不会对其他属性带来额外开销。
 
+项目使用kotlin编写，支持java与kotlin项目。
 
 # 实现原理：
 
@@ -40,6 +44,12 @@ public interface Copier {
 
 
 ```
+# 可用性
+本项目有一些基本的测试用例覆盖，在多个生产环境项目中使用。对于大多数场景应该可以提供可靠的支持，包括基于Lombok的java项目等。  
+
+支持java8及之后的jdk版本，在java8、17、21上均有项目运行
+
+
 # 快速使用
 ## 1 引入依赖:  
 maven 
@@ -47,7 +57,7 @@ maven
 <dependency>
     <groupId>io.github.swqxdba</groupId>
     <artifactId>smart-copier</artifactId>
-    <version>0.0.9</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 
@@ -249,7 +259,7 @@ SmartCopier默认使用BoxTypeConverterProvider进行自动拆装箱，在拆箱
 
 ## 集合与数组
 集合和数组的转换不好处理，SmartCopier内置了一个ContainerTypeConverterProvider用于处理集合与数组的相关转换。  
-你可以在CopyConfig中移除掉这个内置的转换器，来取消对集合类型的自动转换。  
+这个转换器是默认启用的，你可以在CopyConfig中移除掉这个内置的转换器，来取消对集合类型的自动转换。  
 
 集合自动转换指的是类似于以下的几种类型间的互相转换，不包括Map的转换。  
 ```java
@@ -277,3 +287,6 @@ class D{
 转换到int[]后会变成 [1,2,0,4]
 ```
 > SmartCopier指的基础类型默认值，是基础类型数组元素的默认值，比如 (new int[1])[0]
+
+
+如果集合元素非基础类型或者包装类，而是自定义的Bean，那么SmartCopier会尝试询问注册的TypeConverterProvider来获取一个转换器来进行转换  

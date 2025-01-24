@@ -43,7 +43,6 @@ class SmartCopier {
     private val _copierGenerateUseMills = AtomicLong()
 
 
-
     private val globalCache = HashMap<String, Copier>()
 
     private val localCache: ThreadLocal<MutableMap<String, Copier>> = ThreadLocal.withInitial { mutableMapOf() }
@@ -57,7 +56,7 @@ class SmartCopier {
      */
     @JvmOverloads
     fun getCopier(sourceClass: Class<*>, targetClass: Class<*>, config: CopyConfig? = defaultConfig): Copier {
-        val hash = "" + sourceClass.hashCode() + targetClass.hashCode() + System.identityHashCode(config?:0)
+        val hash = "" + sourceClass.hashCode() + targetClass.hashCode() + System.identityHashCode(config ?: 0)
         val localCache = localCache.get()
         val localCopier = localCache[hash]
         if (localCopier != null) {
@@ -75,7 +74,7 @@ class SmartCopier {
             localCache[hash] = proxyCopier
             globalCache[hash] = proxyCopier
             val start = System.currentTimeMillis()
-            proxyCopier.copier = CopierGenerator(sourceClass, targetClass, config,this).generateCopier()
+            proxyCopier.copier = CopierGenerator(sourceClass, targetClass, config, this).generateCopier()
             _copierGenerateUseMills.addAndGet(System.currentTimeMillis() - start)
             return proxyCopier
         }
@@ -96,7 +95,12 @@ class SmartCopier {
      * 批量拷贝元素，要求src中的每个元素拥有相同的类型
      */
     @JvmOverloads
-    fun <T> copyToList(src: Iterable<*>?, targetClass: Class<T>, config: CopyConfig? = defaultConfig): MutableList<T> {
+    fun <T> copyToList(
+        src: Iterable<*>?,
+        targetClass: Class<T>,
+        config: CopyConfig? = defaultConfig,
+        ignoreNullProperty: Boolean = false
+    ): MutableList<T> {
         if (src == null) {
             return mutableListOf()
         }
@@ -115,15 +119,29 @@ class SmartCopier {
         } else {
             mutableListOf()
         }
-        do {
-            val newInstance = constructor.newInstance()
-            copier.copy(element, newInstance)
-            result.add(newInstance)
-            if (!iterator.hasNext()) {
-                break
-            }
-            element = iterator.next()!!
-        } while (true)
+        if (ignoreNullProperty) {
+            do {
+                val newInstance = constructor.newInstance()
+                copier.copyNonNullProperties(element, newInstance)
+                result.add(newInstance)
+                if (!iterator.hasNext()) {
+                    break
+                }
+                element = iterator.next()!!
+            } while (true)
+
+        } else {
+            do {
+                val newInstance = constructor.newInstance()
+                copier.copy(element, newInstance)
+                result.add(newInstance)
+                if (!iterator.hasNext()) {
+                    break
+                }
+                element = iterator.next()!!
+            } while (true)
+        }
+
         return result
     }
 
