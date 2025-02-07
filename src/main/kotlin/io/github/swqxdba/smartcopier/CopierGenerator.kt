@@ -39,7 +39,7 @@ internal class CopierGenerator(
     private fun defineClass(name: String, bytes: ByteArray): Class<*> {
         try {
             return MyClassLoader.define(name, bytes)
-        }catch (e: Exception){
+        }catch (e: Throwable){
             //try by reflect way
             val classLoader = Thread.currentThread().contextClassLoader
             val method = ClassLoader::class.java.getDeclaredMethod(
@@ -53,6 +53,7 @@ internal class CopierGenerator(
                 method.isAccessible = true
             }catch (e: Exception){
                 logger.error("reflect method defineClass error, try to use '--add-opens java.base/java.lang=ALL-UNNAMED' Jvm option",e)
+                throw e
             }
             return method.invoke(classLoader, name, bytes, 0, bytes.size) as Class<*>
         }
