@@ -6,35 +6,41 @@ import io.github.swqxdba.smartcopier.CopyConfig
 import io.github.swqxdba.smartcopier.SmartCopier
 import io.github.swqxdba.smartcopier.converter.PackageBasedTypeConverterProvider
 import org.junit.jupiter.api.Test
+import org.springframework.beans.BeanUtils
 import kotlin.collections.plus
 
 class Benchmark {
-    class SubStruct {
-        var a: Int = 0
-        var b: Long = 0
-    }
-
     class TestStructTo {
-        var a: Int = 0
-        var b: Long = 0
-        var list: List<Int>? = null
-        var subs: List<SubStruct>? = null
+        var field1: Int = 0
+        var field2: Long = 0
+        var field3: String? = null
+        var field4: Double = 0.0
+        var field5: Boolean = false
+        var field6: Float = 0.0f
+        var field7: Short = 0
+        var field8: Byte = 0
+        var field9: Char = '0'
+        var field10: List<Int>? = null
     }
 
     class TestStructFrom {
-        var a: Int = 1
-        var b: Long = 2
-        var list: Array<Int> =
-            listOf(1, 2, 3, 4, 5).let { it + it }.let { it + it }.let { it + it }.let { it + it }.let { it + it }.toTypedArray()
-        var subs: List<SubStruct> =
-            listOf(SubStruct(), SubStruct(), SubStruct(), SubStruct(), SubStruct()).let { it + it }.let { it + it }
-                .let { it + it }.let { it + it }.let { it + it }
+        var field1: Int = 100
+        var field2: Long = 200L
+        var field3: String = "测试字符串"
+        var field4: Double = 3.14159
+        var field5: Boolean = true
+        var field6: Float = 2.718f
+        var field7: Short = 500
+        var field8: Byte = 127
+        var field9: Char = 'A'
+        var field10: List<Int> =
+            listOf(1, 2, 3, 4, 5).let { it + it }.let { it + it }.let { it + it }.let { it + it }.let { it + it }
     }
 
     val smartCopier = SmartCopier()
         .apply {
             debugMode = true
-            debugOutPutDir = "./benchmarkdebug"
+            debugOutPutDir = "./benchmarkdebug2"
         }
     val copier = smartCopier.getCopier(TestStructFrom::class.java, TestStructTo::class.java,)
 
@@ -50,6 +56,12 @@ class Benchmark {
         return target
     }
 
+    private fun useSpringBeanUtils(source: TestStructFrom): TestStructTo {
+        val target = TestStructTo()
+        BeanUtils.copyProperties(source, target)
+        return target
+    }
+
     val mapper = ObjectMapper()
     private fun useObjectMapper(source: TestStructFrom): TestStructTo {
         return mapper.convertValue(source, TestStructTo::class.java)
@@ -61,13 +73,12 @@ class Benchmark {
         
         val source = TestStructFrom()
         val warmupRounds = 10000  // 预热轮数
-        val testRounds = 100000   // 正式测试轮数
+        val testRounds = 500000   // 正式测试轮数
         val iterations = 5        // 测试迭代次数
         
         println("测试数据规模:")
-        println("- 基本字段: 2个")
-        println("- List大小: ${source.list.size}")
-        println("- SubStruct列表大小: ${source.subs.size}")
+        println("- 基本字段: 10个")
+        println("- List大小: ${source.field10.size}")
         println("- 预热轮数: $warmupRounds")
         println("- 测试轮数: $testRounds")
         println("- 迭代次数: $iterations")
@@ -99,7 +110,33 @@ class Benchmark {
             println("第${iteration + 1}轮: ${duration / 1_000_000}ms (${duration / testRounds}ns/op)")
         }
         
-        // 2. BeanUtils 测试
+        // 2. Spring BeanUtils 测试
+        println("\n=== Spring BeanUtils 性能测试 ===")
+        val springBeanUtilsTimes = mutableListOf<Long>()
+        
+        // JVM预热
+        println("JVM预热中...")
+        repeat(warmupRounds) {
+            useSpringBeanUtils(source)
+        }
+        
+        // 正式测试
+        repeat(iterations) { iteration ->
+            System.gc()
+            Thread.sleep(100)
+            
+            val startTime = System.nanoTime()
+            repeat(testRounds) {
+                useSpringBeanUtils(source)
+            }
+            val endTime = System.nanoTime()
+            val duration = endTime - startTime
+            springBeanUtilsTimes.add(duration)
+            
+            println("第${iteration + 1}轮: ${duration / 1_000_000}ms (${duration / testRounds}ns/op)")
+        }
+        
+        // 3. BeanUtils 测试
         println("\n=== BeanUtils 性能测试 ===")
         val beanUtilsTimes = mutableListOf<Long>()
         
@@ -125,7 +162,7 @@ class Benchmark {
             println("第${iteration + 1}轮: ${duration / 1_000_000}ms (${duration / testRounds}ns/op)")
         }
         
-        // 3. ObjectMapper 测试
+        // 4. ObjectMapper 测试
         println("\n=== ObjectMapper 性能测试 ===")
         val objectMapperTimes = mutableListOf<Long>()
         
@@ -172,16 +209,19 @@ class Benchmark {
         }
         
         printStats("SmartCopier", smartCopierTimes)
+        printStats("Spring BeanUtils", springBeanUtilsTimes)
         printStats("BeanUtils", beanUtilsTimes)
         printStats("ObjectMapper", objectMapperTimes)
         
         // 性能对比
         val smartCopierAvg = smartCopierTimes.average()
+        val springBeanUtilsAvg = springBeanUtilsTimes.average()
         val beanUtilsAvg = beanUtilsTimes.average()
         val objectMapperAvg = objectMapperTimes.average()
         
         println("性能对比 (以SmartCopier为基准):")
         println("SmartCopier:  1.00x")
+        println("Spring BeanUtils:    ${String.format("%.2f", springBeanUtilsAvg / smartCopierAvg)}x")
         println("BeanUtils:    ${String.format("%.2f", beanUtilsAvg / smartCopierAvg)}x")
         println("ObjectMapper: ${String.format("%.2f", objectMapperAvg / smartCopierAvg)}x")
         
